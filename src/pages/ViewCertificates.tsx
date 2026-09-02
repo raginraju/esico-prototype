@@ -14,36 +14,36 @@ export default function ViewCertificates() {
   };
 
   return (
-    <div className="min-h-screen bg-[#ede9f6] flex flex-col justify-start sm:justify-center items-center p-4 sm:p-8">
-      {/* Main Verification Card */}
-      <div className="w-full max-w-[620px] bg-white rounded-xs shadow-sm border border-neutral-100 p-8 sm:p-10">
+    <div className="min-h-screen min-h-dvh w-full bg-[#ede9f3] flex items-center justify-center p-4 sm:p-8">
+      {/* Centered Verification Card */}
+      <div className="w-full max-w-[500px] bg-white rounded-[2px] shadow-sm p-8 sm:p-10">
         
         {/* ESICO Brand Header */}
-        <div className="flex items-center gap-3">
-          <svg className="w-10 h-10 text-[#00623a]" viewBox="0 0 100 100" fill="currentColor">
+        <div className="flex items-center gap-2.5">
+          <svg className="w-8 h-8 text-[#00623a]" viewBox="0 0 100 100" fill="currentColor">
             <path d="M50 8L15 43L30 58L50 38L70 58L85 43L50 8Z" />
             <path d="M50 92L85 57L70 42L50 62L30 42L15 57L50 92Z" />
             <path d="M42 32L24 50L42 68L48 62L36 50L48 38L42 32Z" fill="#ffffff" />
             <path d="M58 32L76 50L58 68L52 62L64 50L52 38L58 32Z" fill="#ffffff" />
           </svg>
-          <span className="text-2xl font-black tracking-normal text-neutral-900 font-sans">
+          <span className="text-[22px] font-black tracking-tight text-[#22242a] font-sans">
             ESICO
           </span>
         </div>
 
         {/* Heading */}
-        <h1 className="text-[17px] sm:text-[19px] font-bold text-neutral-800 mt-7 tracking-tight">
+        <h1 className="text-[17px] sm:text-[19px] font-bold text-[#22242a] mt-7 tracking-tight">
           Hey! Quickly Verify Your Certificates Here.
         </h1>
 
         <form onSubmit={handleSearch} className="mt-6 space-y-5">
           {/* Select Type Section */}
           <div>
-            <label className="block text-[13px] font-bold text-neutral-800 mb-2.5">
+            <label className="block text-[13px] font-bold text-[#22242a] mb-2.5">
               Select Type:
             </label>
             <div className="flex items-center gap-6">
-              <label className="flex items-center gap-2 cursor-pointer text-[13px] text-neutral-800 font-normal">
+              <label className="flex items-center gap-2 cursor-pointer text-[13px] text-[#22242a] font-normal">
                 <input
                   type="radio"
                   name="docType"
@@ -55,7 +55,7 @@ export default function ViewCertificates() {
                 Certificate
               </label>
 
-              <label className="flex items-center gap-2 cursor-pointer text-[13px] text-neutral-800 font-normal">
+              <label className="flex items-center gap-2 cursor-pointer text-[13px] text-[#22242a] font-normal">
                 <input
                   type="radio"
                   name="docType"
@@ -69,23 +69,23 @@ export default function ViewCertificates() {
             </div>
           </div>
 
-          {/* Search Input */}
+          {/* Search Input Field */}
           <div>
             <input
               type="text"
               value={searchId}
               onChange={(e) => setSearchId(e.target.value)}
               placeholder="ESICO-LFT-"
-              className="w-full px-3.5 py-3 border border-neutral-200 rounded-[2px] text-[14px] text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-neutral-400 bg-white"
+              className="w-full px-3.5 py-3 border border-[#e8eaf0] rounded-[2px] text-[16px] sm:text-[13.5px] text-[#22242a] placeholder-[#a6abb7] focus:outline-none focus:border-neutral-400 bg-white"
               required
             />
           </div>
 
-          {/* Search Action Button */}
+          {/* Action Button */}
           <div>
             <button
               type="submit"
-              className="w-36 py-2.5 bg-gradient-to-r from-[#b766ff] to-[#994eff] hover:from-[#aa55ff] hover:to-[#8c3df2] active:scale-[0.98] text-white font-semibold text-[14px] rounded-[4px] shadow-sm transition-all cursor-pointer"
+              className="w-32 py-2.5 bg-gradient-to-r from-[#b765ff] to-[#9c45ff] hover:from-[#a852fa] hover:to-[#8d34f5] active:scale-[0.98] text-white font-semibold text-[13px] rounded-[3px] shadow-sm transition-all cursor-pointer"
             >
               Search
             </button>

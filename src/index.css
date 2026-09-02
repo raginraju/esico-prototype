@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --color-canvas-bg: #ede9f3;
+  --color-canvas-bg: #f3edf7;
   --color-card-border: #e8eaf0;
   --color-brand-green: #00623a;
   --color-brand-purple-start: #b765ff;
@@ -13,8 +13,19 @@
   --color-text-sub: #6f7482;
 }
 
-body {
-  background-color: var(--color-canvas-bg);
+html,
+body,
+#root {
+  background-color: #ffffff;
   margin: 0;
   padding: 0;
+  min-height: 100%;
+}
+
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }

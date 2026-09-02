@@ -8,10 +8,10 @@ export default function Login() {
   const navigate = useNavigate();
 
   const handleSignIn = (e: React.FormEvent) => {
-    e.preventDefault();
-    localStorage.setItem("esico_demo_token", "demo_session_active");
-    navigate("/portal");
-  };
+  e.preventDefault();
+  localStorage.setItem("esico_demo_token", "demo_session_active");
+  navigate("/dashboard");
+};
 
   return (
     <div className="min-h-screen w-full bg-[#ede9f3] flex items-center justify-center p-4">

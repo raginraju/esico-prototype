@@ -8,13 +8,14 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "dev:cf": "npm run build && wrangler pages dev dist",
+    "dev:server": "npm run build && wrangler dev",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "drizzle-orm": "^0.45.2",
+    "hono": "^4.13.5",
     "lucide-react": "^1.39.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

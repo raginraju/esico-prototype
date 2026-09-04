@@ -1,19 +1,31 @@
 // test/test-utils.ts
+import type { D1Database } from "@cloudflare/workers-types";
 import { getPlatformProxy } from "wrangler";
+import type { Env } from "../src/server/index";
 
-export interface TestEnv {
-  DB: D1Database;
+export interface TestContext {
+  env: Env;
+  dispose: () => Promise<void>;
 }
 
-// 1. Get bindings from root wrangler.toml (without looking for [env.test])
-export async function getTestBindings(): Promise<TestEnv> {
-  const proxy = await getPlatformProxy<TestEnv>({
-    persist: false, // Clean in-memory DB for test isolation
+export async function getTestBindings(): Promise<TestContext> {
+  const proxy = await getPlatformProxy<{ DB: D1Database }>({
+    persist: false,
   });
-  return proxy.env;
+
+  const env: Env = {
+    DB: proxy.env.DB,
+    ASSETS: {
+      fetch: async () => new Response("Mock Static Asset", { status: 200 }),
+    },
+  };
+
+  return {
+    env,
+    dispose: proxy.dispose,
+  };
 }
 
-// 2. Sequential execution avoids Miniflare D1 batch/exec parsing bugs
 export async function setupTestDatabase(db: D1Database) {
   const statements = [
     "DROP TABLE IF EXISTS certificates",
@@ -34,26 +46,11 @@ export async function setupTestDatabase(db: D1Database) {
       exam_date TEXT NOT NULL,
       status TEXT DEFAULT 'PASS'
     )`,
+    `INSERT INTO users (id, email, password_hash, role) 
+     VALUES ('u_admin', 'admin@esico.com.sa', 'demo123', 'ADMIN')`,
   ];
 
   for (const sql of statements) {
     await db.prepare(sql).run();
   }
-}
-
-// 3. Execution context helper
-export function createExecutionContext<Params = Record<string, string>>(
-  request: Request,
-  env: TestEnv,
-  params: Params = {} as Params
-) {
-  return {
-    request,
-    env,
-    params,
-    functionPath: "",
-    waitUntil: () => {},
-    next: async () => new Response(),
-    data: {},
-  } as any;
 }

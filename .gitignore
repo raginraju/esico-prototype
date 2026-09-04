@@ -29,6 +29,8 @@ dist-ssr
 .env.production
 .env.local
 .env.*.local
+.env.*
+!.env.example
 
 # Capacitor / Android Build Output & Secrets
 android/app/build
@@ -41,4 +43,5 @@ android/app/*.jks
 
 # Cloudflare Wrangler
 .wrangler
+.wrangler/state
 .dev.vars

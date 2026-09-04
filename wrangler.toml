@@ -1,0 +1,10 @@
+name = "esico-app"
+compatibility_date = "2026-09-01"
+pages_build_output_dir = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "esico-db"
+database_id = "410dbc81-3d8c-4d57-841c-ffe84c04e523"
+
+

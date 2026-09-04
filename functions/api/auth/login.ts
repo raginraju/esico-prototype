@@ -1,4 +1,3 @@
-// functions/api/auth/login.ts
 import { drizzle } from "drizzle-orm/d1";
 import { and, eq } from "drizzle-orm";
 import { users } from "../../../db/schema";

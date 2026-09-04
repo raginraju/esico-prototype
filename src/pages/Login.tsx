@@ -19,14 +19,30 @@ export default function Login() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || "Login failed");
+        const isJson = response.headers.get("content-type")?.includes("application/json");
+        let errorMessage = `Server error (${response.status})`;
+
+        if (isJson) {
+          const errData = await response.json().catch(() => null);
+          errorMessage = errData?.error || errorMessage;
+        } else {
+          const text = await response.text().catch(() => "");
+          if (response.status === 404) {
+            errorMessage = "API route not found (404). Ensure you are accessing the .pages.dev URL.";
+          } else if (text) {
+            errorMessage = text;
+          }
+        }
+
+        throw new Error(errorMessage);
       }
+
+      // 2. Parse successful response
+      const data = await response.json();
 
       // Store auth session token
       localStorage.setItem("esico_demo_token", data.token);
@@ -74,7 +90,7 @@ export default function Login() {
         </p>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded break-words">
             {error}
           </div>
         )}

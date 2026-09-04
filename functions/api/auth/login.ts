@@ -1,3 +1,8 @@
+// functions/api/auth/login.ts
+import { drizzle } from "drizzle-orm/d1";
+import { and, eq } from "drizzle-orm";
+import { users } from "../../../db/schema";
+
 interface Env {
   DB: D1Database;
 }
@@ -13,12 +18,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     });
   }
 
-  // Query your D1 database
-  const user = await env.DB.prepare(
-    "SELECT id, email, role FROM users WHERE email = ? AND password_hash = ?"
-  )
-    .bind(email, password)
-    .first<{ id: string; email: string; role: string }>();
+  // Initialize Drizzle with D1 binding
+  const db = drizzle(env.DB);
+
+  // Type-safe SELECT query
+  const user = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      role: users.role,
+    })
+    .from(users)
+    .where(and(eq(users.email, email), eq(users.passwordHash, password)))
+    .get();
 
   if (!user) {
     return new Response(JSON.stringify({ error: "Invalid credentials" }), {

@@ -131,7 +131,7 @@ export default function Certificates() {
 
       <div className="bg-white rounded-[4px] shadow-[0_0_10px_rgba(0,0,0,0.03)] border border-[#ebedf2] overflow-hidden">
         {/* Filter Search Bar */}
-        <form onSubmit={handleSearch} className="p-6 pb-4 flex flex-wrap items-end gap-3 text-[#495057]">
+        <form onSubmit={handleSearch} className="p-4 md:p-6 pb-4 flex flex-wrap items-end gap-3 text-[#495057]">
           <div>
             <label className="block text-[12px] font-medium mb-1">From Date</label>
             <input
@@ -206,16 +206,16 @@ export default function Certificates() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-[#ebedf2] text-[13px] font-semibold text-[#343a40]">
-                <th className="py-3.5 px-6 font-semibold">Report Number</th>
-                <th className="py-3.5 px-6 font-semibold">Sticker Number</th>
-                <th className="py-3.5 px-6 font-semibold">Location</th>
-                <th className="py-3.5 px-6 font-semibold">
+                <th className="py-3.5 px-4 md:px-6 font-semibold">Report Number</th>
+                <th className="hidden md:table-cell py-3.5 px-6 font-semibold">Sticker Number</th>
+                <th className="hidden md:table-cell py-3.5 px-6 font-semibold">Location</th>
+                <th className="hidden md:table-cell py-3.5 px-6 font-semibold">
                   <span className="inline-flex items-center gap-1">
                     Date of Examination
                   </span>
                 </th>
-                <th className="py-3.5 px-6 font-semibold">Inspected By</th>
-                <th className="py-3.5 px-6 font-semibold text-center">Actions</th>
+                <th className="hidden md:table-cell py-3.5 px-6 font-semibold">Inspected By</th>
+                <th className="py-3.5 px-4 md:px-6 font-semibold text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#ebedf2] text-[13px]">
@@ -234,22 +234,22 @@ export default function Certificates() {
               ) : (
                 certificates.map((cert) => (
                   <tr key={cert.id} className="hover:bg-[#f8f9fa] transition-colors">
-                    <td className="py-3.5 px-6 text-[#343a40] font-normal whitespace-nowrap">
+                    <td className="py-3.5 px-4 md:px-6 text-[#343a40] font-normal whitespace-nowrap">
                       {cert.report_number}
                     </td>
-                    <td className="py-3.5 px-6 text-[#6c757d] whitespace-nowrap">
+                    <td className="hidden md:table-cell py-3.5 px-6 text-[#6c757d] whitespace-nowrap">
                       {cert.sticker_number || "N/A"}
                     </td>
-                    <td className="py-3.5 px-6 text-[#6c757d] whitespace-nowrap">
+                    <td className="hidden md:table-cell py-3.5 px-6 text-[#6c757d] whitespace-nowrap">
                       {cert.location || "N/A"}
                     </td>
-                    <td className="py-3.5 px-6 text-[#6c757d] whitespace-nowrap">
+                    <td className="hidden md:table-cell py-3.5 px-6 text-[#6c757d] whitespace-nowrap">
                       {cert.selected_date}
                     </td>
-                    <td className="py-3.5 px-6 text-[#6c757d] whitespace-nowrap">
+                    <td className="hidden md:table-cell py-3.5 px-6 text-[#6c757d] whitespace-nowrap">
                       {cert.inspected_by || cert.inspector_name || "N/A"}
                     </td>
-                    <td className="py-3.5 px-6 whitespace-nowrap">
+                    <td className="py-3.5 px-4 md:px-6 whitespace-nowrap">
                       <div className="flex items-center justify-center gap-3 text-[#212529]">
                         {/* Edit Action */}
                         <button
@@ -304,40 +304,42 @@ export default function Certificates() {
         </div>
 
         {/* Pagination Controls */}
-        <div className="px-6 py-4 border-t border-[#ebedf2] flex items-center justify-end gap-3 text-[12px] text-[#6c757d]">
+        <div className="px-4 md:px-6 py-4 border-t border-[#ebedf2] flex items-center justify-between md:justify-end gap-3 text-[12px] text-[#6c757d]">
           <span>
             {startEntry} - {endEntry} of {total} Entries
           </span>
 
-          <button
-            disabled={page <= 1}
-            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            className="w-7 h-7 flex items-center justify-center border border-[#ced4da] rounded-[2px] bg-white text-[#495057] disabled:text-[#ced4da] disabled:cursor-not-allowed hover:bg-[#f8f9fa] cursor-pointer"
-            aria-label="Previous page"
-          >
-            ‹
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              className="w-7 h-7 flex items-center justify-center border border-[#ced4da] rounded-[2px] bg-white text-[#495057] disabled:text-[#ced4da] disabled:cursor-not-allowed hover:bg-[#f8f9fa] cursor-pointer"
+              aria-label="Previous page"
+            >
+              ‹
+            </button>
 
-          <select
-            value={page}
-            onChange={(e) => setPage(Number(e.target.value))}
-            className="h-7 px-2 border border-[#ced4da] rounded-[2px] bg-white text-[#495057] text-[12px] focus:outline-none focus:border-[#b66dff]"
-          >
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
+            <select
+              value={page}
+              onChange={(e) => setPage(Number(e.target.value))}
+              className="h-7 px-2 border border-[#ced4da] rounded-[2px] bg-white text-[#495057] text-[12px] focus:outline-none focus:border-[#b66dff]"
+            >
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
 
-          <button
-            disabled={page >= totalPages}
-            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-            className="w-7 h-7 flex items-center justify-center border border-[#ced4da] rounded-[2px] bg-white text-[#495057] disabled:text-[#ced4da] disabled:cursor-not-allowed hover:bg-[#f8f9fa] cursor-pointer"
-            aria-label="Next page"
-          >
-            ›
-          </button>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              className="w-7 h-7 flex items-center justify-center border border-[#ced4da] rounded-[2px] bg-white text-[#495057] disabled:text-[#ced4da] disabled:cursor-not-allowed hover:bg-[#f8f9fa] cursor-pointer"
+              aria-label="Next page"
+            >
+              ›
+            </button>
+          </div>
         </div>
       </div>
     </>

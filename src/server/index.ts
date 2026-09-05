@@ -1,5 +1,6 @@
 // src/server/index.ts
 import { Hono } from "hono";
+import { trimTrailingSlash } from "hono/trailing-slash";
 import { drizzle } from "drizzle-orm/d1";
 import { and, desc, eq, like, or } from "drizzle-orm";
 import { users, certificates, type NewCertificate } from "../../db/schema";
@@ -12,22 +13,11 @@ export interface Env {
     fetch: (request: Request) => Promise<Response>;
   };
 }
-// 2. Strongly-typed payload interface for POST /api/certificates
-interface CertificateInput {
-  reportNo?: string;
-  report_no?: string;
-  employer?: string;
-  location?: string;
-  equipmentDesc?: string;
-  equipment_desc?: string;
-  safeWorkingLoad?: string;
-  safe_working_load?: string;
-  examDate?: string;
-  exam_date?: string;
-  status?: string;
-}
 
 const app = new Hono<{ Bindings: Env }>();
+
+// Strip trailing slashes so /api/certificates/ cleanly matches /api/certificates
+app.use(trimTrailingSlash());
 
 // ---------------- AUTH ----------------
 
@@ -78,10 +68,12 @@ app.get("/api/certificates", async (c) => {
     const term = `%${search}%`;
     conditions.push(
       or(
-        like(certificates.reportNo, term),
-        like(certificates.employer, term),
-        like(certificates.equipmentDesc, term),
-        like(certificates.location, term)
+        like(certificates.report_number, term),
+        like(certificates.employer_name_address, term),
+        like(certificates.equipment_description, term),
+        like(certificates.location, term),
+        like(certificates.sticker_number, term),
+        like(certificates.equipment_id, term)
       )
     );
   }
@@ -90,73 +82,143 @@ app.get("/api/certificates", async (c) => {
     .select()
     .from(certificates)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(certificates.examDate));
+    .orderBy(desc(certificates.created_on));
 
-  return c.json({ success: true, count: results.length, data: results });
+  return c.json({
+    status: "success",
+    message: "Data has been retrieved successfully!",
+    count: results.length,
+    data: results,
+  });
 });
 
-// GET /api/certificates/:id (Detail)
+// GET /api/certificates/:id (Detail / Search / QR Scan)
+// Matches report_number ("ESICO-LFT-R26-8941"), unique_id ("6a279716eb913"), or id ("9122")
 app.get("/api/certificates/:id", async (c) => {
-  const reportNo = c.req.param("id");
+  const identifier = c.req.param("id").trim();
   const db = drizzle(c.env.DB);
 
   const cert = await db
     .select()
     .from(certificates)
-    .where(eq(certificates.reportNo, reportNo))
+    .where(
+      or(
+        eq(certificates.report_number, identifier),
+        eq(certificates.id, identifier),
+        eq(certificates.unique_id, identifier)
+      )
+    )
     .get();
 
   if (!cert) {
     return c.json(
-      { success: false, error: `Certificate '${reportNo}' not found` },
+      {
+        status: "error",
+        message: `Certificate '${identifier}' not found`,
+        data: null,
+      },
       404
     );
   }
 
-  return c.json({ success: true, data: cert });
+  return c.json({
+    status: "success",
+    message: "Data has been retrieved successfully!",
+    data: cert,
+  });
 });
 
-// POST /api/certificates (Create)
+// POST /api/certificates (Create Certificate)
 app.post("/api/certificates", async (c) => {
-  const body: CertificateInput = await c.req
-    .json<CertificateInput>()
-    .catch(() => ({}));
+  const body = await c.req.json<Record<string, any>>().catch(() => ({}));
 
-  const reportNo = body.reportNo || body.report_no;
-  const employer = body.employer;
-  const equipmentDesc = body.equipmentDesc || body.equipment_desc;
+  const reportNumber = body.report_number || body.reportNo;
+  const employer = body.employer_name_address || body.employer;
+  const equipmentDesc = body.equipment_description || body.equipmentDesc;
 
-  if (!reportNo || !employer || !equipmentDesc) {
+  if (!reportNumber || !employer || !equipmentDesc) {
     return c.json(
-      { error: "reportNo, employer, and equipmentDesc are required" },
+      {
+        status: "error",
+        message: "report_number, employer_name_address, and equipment_description are required",
+      },
       400
     );
   }
 
   const newCert: NewCertificate = {
-    reportNo,
-    employer,
-    equipmentDesc,
+    id: body.id || String(Date.now()),
+    unique_id:
+      body.unique_id || crypto.randomUUID().replace(/-/g, "").slice(0, 13),
+    report_number: reportNumber,
+    certificate_title:
+      body.certificate_title ||
+      "CERTIFICATE OF THOROUGH EXAMINATION AND /OR TEST",
+    revision_number: body.revision_number || "1",
+    as_name: body.as_name ?? null,
+    inspector_name: body.inspector_name || "Inspector",
+    inspected_by: body.inspected_by || "",
+    signature: body.signature || "",
+    selected_date:
+      body.selected_date ||
+      body.examDate ||
+      new Date().toISOString().split("T")[0],
+    next_date: body.next_date || "",
+    date_of_issue: body.date_of_issue || "",
+    sel_date: body.sel_date || "",
+    nex_date: body.nex_date || "",
+    applied_standards: body.applied_standards || "",
+    sticker_number: body.sticker_number || "",
+    employer_name_address: employer,
     location: body.location || "",
-    safeWorkingLoad: body.safeWorkingLoad || body.safe_working_load || "",
-    examDate:
-      body.examDate || body.exam_date || new Date().toISOString().split("T")[0],
-    status: body.status || "PASS",
+    equipment_id: body.equipment_id || "",
+    equipment_description: equipmentDesc,
+    equipment_description_pdf:
+      body.equipment_description_pdf || equipmentDesc,
+    safe_working_loads:
+      body.safe_working_loads || body.safeWorkingLoad || "",
+    manufacturer_name: body.manufacturer_name || "",
+    manufacture_date: body.manufacture_date || "",
+    first_examined: body.first_examined || "No",
+    installed_correctly: body.installed_correctly || "",
+    months_interval: body.months_interval || "6",
+    six_months_interval: body.six_months_interval || "No",
+    twelve_months_interval: body.twelve_months_interval || "No",
+    exam_scheme: body.exam_scheme || "Yes",
+    after_occur: body.after_occur || "No",
+    defect: body.defect || "NONE",
+    defect2: body.defect2 || "N/A",
+    iminent_danger: body.iminent_danger || "No",
+    repair_renewal: body.repair_renewal || "NONE",
+    any_tests_carried: body.any_tests_carried || "NONE",
+    observation: body.observation || "",
+    safe_to_operate: body.safe_to_operate || "Yes",
+    checklist_type: body.checklist_type || "",
+    show_in_certificate: body.show_in_certificate || "0",
+    status: body.status || "A",
+    created_on: new Date().toISOString().replace("T", " ").slice(0, 19),
+    updated_on: "0000-00-00 00:00:00",
   };
 
   const db = drizzle(c.env.DB);
   await db.insert(certificates).values(newCert);
 
   return c.json(
-    { success: true, message: "Certificate created", reportNo: newCert.reportNo },
+    {
+      status: "success",
+      message: "Certificate created successfully",
+      data: newCert,
+    },
     201
   );
 });
 
-// ---------------- STATIC ASSETS FALLBACK ----------------
+// ---------------- STATIC ASSETS & 404 FALLBACK ----------------
 
 // Strict 404 for unmapped API routes so they return JSON, not HTML
-app.all("/api/*", (c) => c.json({ error: "Endpoint not found" }, 404)); 
+app.all("/api/*", (c) =>
+  c.json({ status: "error", message: "Endpoint not found" }, 404)
+);
 
 // Serve Vite frontend build from dist/ for all non-API paths
 app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw as any) as any);

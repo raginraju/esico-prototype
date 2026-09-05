@@ -73,9 +73,23 @@ export const certificates = sqliteTable("certificates", {
   updated_on: text("updated_on"),
 });
 
+export const idCards = sqliteTable("id_cards", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  file_number: text("file_number").notNull(),
+  civil_id_number: text("civil_id_number").notNull(),
+  designation: text("designation").notNull(),
+  expiry_date: text("expiry_date").notNull(),
+  file_url: text("file_url"),
+  created_at: text("created_at").notNull(),
+});
+
 // Inferred TypeScript types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
 export type Certificate = typeof certificates.$inferSelect;
 export type NewCertificate = typeof certificates.$inferInsert;
+
+export type IDCard = typeof idCards.$inferSelect;
+export type NewIDCard = typeof idCards.$inferInsert;

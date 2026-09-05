@@ -14,4 +14,8 @@ database_name = "esico-db"
 database_id = "410dbc81-3d8c-4d57-841c-ffe84c04e523"
 migrations_dir = "./migrations"
 
+# Cloudflare R2 bucket configuration (uncomment and configure if needed) 
+#[[r2_buckets]]
+#binding = "ID_CARD_BUCKET"
+#bucket_name = "id-cards-storage"
 

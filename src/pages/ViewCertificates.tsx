@@ -1,7 +1,6 @@
 // src/pages/ViewCertificates.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BrandLogo } from "../components/ui/BrandLogo";
 import { CenteredLayout, AuthCard } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
@@ -21,7 +20,14 @@ export default function ViewCertificates() {
   return (
     <CenteredLayout>
       <AuthCard>
-        <BrandLogo />
+        {/* ESICO Logo */}
+        <div className="flex justify-center mb-6">
+          <img
+            src="/assets/esico-logo-letters.png"
+            alt="ESICO"
+            className="h-14 w-auto object-contain"
+          />
+        </div>
 
         <h1 className="text-[17px] sm:text-[19px] font-bold text-[#22242a] mt-7 tracking-tight">
           Hey! Quickly Verify Your Certificates Here.

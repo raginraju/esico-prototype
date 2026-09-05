@@ -44,28 +44,14 @@ export default function Dashboard() {
       <header className="w-full bg-white px-6 pt-3 pb-3 flex items-center justify-between shrink-0 z-30">
         {/* Left: Logo */}
         <div
-          className="flex items-center gap-2 cursor-pointer"
+          className="flex items-center cursor-pointer"
           onClick={() => navigate("/")}
         >
-          <svg
-            className="w-9 h-9 text-[#00623a]"
-            viewBox="0 0 100 100"
-            fill="currentColor"
-          >
-            <path d="M50 8L15 43L30 58L50 38L70 58L85 43L50 8Z" />
-            <path d="M50 92L85 57L70 42L50 62L30 42L15 57L50 92Z" />
-            <path
-              d="M42 32L24 50L42 68L48 62L36 50L48 38L42 32Z"
-              fill="#ffffff"
-            />
-            <path
-              d="M58 32L76 50L58 68L52 62L64 50L52 38L58 32Z"
-              fill="#ffffff"
-            />
-          </svg>
-          <span className="hidden md:inline text-[22px] font-black tracking-tight text-neutral-900 font-sans">
-            ESICO
-          </span>
+          <img
+            src="/assets/esico-logo-letters.png"
+            alt="ESICO Logo"
+            className="h-9 w-auto object-contain"
+          />
         </div>
 
         {/* Right: Avatar + Indicator + Hamburger */}

@@ -1,7 +1,6 @@
 // src/pages/Login.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BrandLogo } from "../components/ui/BrandLogo";
 import { CenteredLayout, AuthCard } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
@@ -53,13 +52,20 @@ export default function Login() {
   return (
     <CenteredLayout>
       <AuthCard>
-        <BrandLogo />
+        {/* ESICO Logo */}
+        <div className="flex justify-center mb-6">
+          <img
+            src="/assets/esico-logo-letters.png"
+            alt="ESICO"
+            className="h-14 w-auto object-contain"
+          />
+        </div>
 
         <h1 className="text-[17px] sm:text-[19px] font-bold text-[#22242a] mt-7 tracking-tight">
-          Inspector Portal Sign In
+          Hello! let's get started
         </h1>
         <p className="text-[13px] text-neutral-500 mt-1">
-          Enter your credentials to manage inspection certificates.
+          Sign in to continue.
         </p>
 
         {error && (

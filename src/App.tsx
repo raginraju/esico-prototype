@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
 import IDCards from "./pages/IDCards";
 import Certificates from "./pages/Certificates";
+import NewCertificate from "./pages/NewCertificate";
 import Settings from "./pages/Settings";
 import ViewCertificates from "./pages/ViewCertificates";
 import ViewPDF from "./pages/ViewPDF";
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/users" element={<Users />} />
           <Route path="/idcards" element={<IDCards />} />
           <Route path="/certificates" element={<Certificates />} />
+          <Route path="/certificates/new" element={<NewCertificate />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
 

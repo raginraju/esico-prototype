@@ -1,16 +1,19 @@
-// src/routes/certificates.ts
+// src/server/routes/certificates.ts
 import { Hono } from "hono";
 import { drizzle } from "drizzle-orm/d1";
-import { and, desc, eq, like, or } from "drizzle-orm";
+import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import { certificates, type NewCertificate } from "../../../db/schema";
-import type { Env } from "../env"; // adjust path to your Env definition
+import type { Env } from "../env";
 
 const certificatesRouter = new Hono<{ Bindings: Env }>();
 
-// GET /api/certificates (Search & List)
+// GET /api/certificates (Search, Filter, Paginated List & Total Count)
 certificatesRouter.get("/", async (c) => {
   const search = c.req.query("search")?.trim();
   const status = c.req.query("status")?.trim();
+  const page = Math.max(1, Number(c.req.query("page")) || 1);
+  const limit = Math.min(100, Math.max(1, Number(c.req.query("limit")) || 10));
+  const offset = (page - 1) * limit;
 
   const db = drizzle(c.env.DB);
   const conditions = [];
@@ -25,20 +28,41 @@ certificatesRouter.get("/", async (c) => {
         like(certificates.equipment_description, term),
         like(certificates.location, term),
         like(certificates.sticker_number, term),
-        like(certificates.equipment_id, term)
+        like(certificates.equipment_id, term),
+        like(certificates.unique_id, term)
       )
     );
   }
 
-  const results = await db
-    .select()
-    .from(certificates)
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(certificates.created_on));
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  // Run data fetch and count queries in parallel
+  const [results, totalRecord] = await Promise.all([
+    db
+      .select()
+      .from(certificates)
+      .where(whereClause)
+      .orderBy(desc(certificates.created_on))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(certificates)
+      .where(whereClause)
+      .get(),
+  ]);
+
+  const total = totalRecord?.count || 0;
 
   return c.json({
     status: "success",
     message: "Data has been retrieved successfully!",
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
     count: results.length,
     data: results,
   });
@@ -91,17 +115,20 @@ certificatesRouter.post("/", async (c) => {
     return c.json(
       {
         status: "error",
-        message: "report_number, employer_name_address, and equipment_description are required",
+        message:
+          "report_number, employer_name_address, and equipment_description are required",
       },
       400
     );
   }
 
+  const nowTimestamp = new Date().toISOString().replace("T", " ").slice(0, 19);
+
   const newCert: NewCertificate = {
-    id: body.id || String(Date.now()),
+    id: body.id || crypto.randomUUID(),
     unique_id:
       body.unique_id || crypto.randomUUID().replace(/-/g, "").slice(0, 13),
-    report_number: reportNumber,
+    report_number: reportNumber.trim(),
     certificate_title:
       body.certificate_title ||
       "CERTIFICATE OF THOROUGH EXAMINATION AND /OR TEST",
@@ -120,12 +147,12 @@ certificatesRouter.post("/", async (c) => {
     nex_date: body.nex_date || "",
     applied_standards: body.applied_standards || "",
     sticker_number: body.sticker_number || "",
-    employer_name_address: employer,
+    employer_name_address: employer.trim(),
     location: body.location || "",
     equipment_id: body.equipment_id || "",
-    equipment_description: equipmentDesc,
+    equipment_description: equipmentDesc.trim(),
     equipment_description_pdf:
-      body.equipment_description_pdf || equipmentDesc,
+      body.equipment_description_pdf || equipmentDesc.trim(),
     safe_working_loads:
       body.safe_working_loads || body.safeWorkingLoad || "",
     manufacturer_name: body.manufacturer_name || "",
@@ -147,7 +174,7 @@ certificatesRouter.post("/", async (c) => {
     checklist_type: body.checklist_type || "",
     show_in_certificate: body.show_in_certificate || "0",
     status: body.status || "A",
-    created_on: new Date().toISOString().replace("T", " ").slice(0, 19),
+    created_on: nowTimestamp,
     updated_on: "0000-00-00 00:00:00",
   };
 
@@ -162,6 +189,52 @@ certificatesRouter.post("/", async (c) => {
     },
     201
   );
+});
+
+// PUT /api/certificates/:id (Update Certificate)
+certificatesRouter.put("/:id", async (c) => {
+  const id = c.req.param("id").trim();
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, any>;
+  const db = drizzle(c.env.DB);
+
+  const existing = await db
+    .select({ id: certificates.id })
+    .from(certificates)
+    .where(eq(certificates.id, id))
+    .get();
+
+  if (!existing) {
+    return c.json({ status: "error", message: "Certificate not found" }, 404);
+  }
+
+  const updatePayload: Partial<NewCertificate> = {
+    ...body,
+    updated_on: new Date().toISOString().replace("T", " ").slice(0, 19),
+  };
+  delete updatePayload.id; // Prevent updating the primary key
+
+  await db
+    .update(certificates)
+    .set(updatePayload)
+    .where(eq(certificates.id, id));
+
+  return c.json({
+    status: "success",
+    message: "Certificate updated successfully",
+  });
+});
+
+// DELETE /api/certificates/:id (Delete Certificate)
+certificatesRouter.delete("/:id", async (c) => {
+  const id = c.req.param("id").trim();
+  const db = drizzle(c.env.DB);
+
+  await db.delete(certificates).where(eq(certificates.id, id));
+
+  return c.json({
+    status: "success",
+    message: "Certificate deleted successfully",
+  });
 });
 
 export default certificatesRouter;

@@ -494,9 +494,9 @@ export default function ViewPDF() {
           <div className="pt-3 mt-2 flex items-center justify-between gap-1.5 select-none">
             <img src="/assets/leea.png" alt="LEEA" className="h-[38px] max-w-[68px] object-contain" />
             <img src="/assets/aramco.png" alt="Saudi Aramco" className="h-[38px] max-w-[74px] object-contain" />
-            <img src="/assets/ep-muncipality.png" alt="Eastern Province Municipality" className="h-[38px] max-w-[68px] object-contain" />
+            <img src="/assets/ep-municipality" alt="Eastern Province Municipality" className="h-[38px] max-w-[68px] object-contain" />
             <img src="/assets/neom.png" alt="NEOM" className="h-[38px] max-w-[68px] object-contain" />
-            <img src="/assets/national-water-company.png" alt="National Water Company" className="h-[38px] max-w-[68px] object-contain" />
+            <img src="/assets/nwc.png" alt="National Water Company" className="h-[38px] max-w-[68px] object-contain" />
             <img src="/assets/royal-commission-logo.png" alt="Royal Commission" className="h-[38px] max-w-[68px] object-contain" />
             <img src="/assets/sabic-logo.png" alt="SABIC" className="h-[38px] max-w-[68px] object-contain" />
             <img src="/assets/saudi-electric-company.png" alt="Saudi Electricity Company" className="h-[38px] max-w-[74px] object-contain" />

@@ -1,3 +1,4 @@
+// src/pages/ViewPDF.tsx
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import type { CertificateRecord } from "../types/certificate";
@@ -75,28 +76,23 @@ export default function ViewPDF() {
 
   return (
     <div className="view-pdf-container min-h-screen bg-[#ede9f3] py-4 px-2 sm:px-4 flex flex-col items-start lg:items-center">
-      {/* Scroll Container (anchored top-left on mobile screens) */}
       <div
         ref={scrollContainerRef}
         className="w-full overflow-x-auto flex justify-start lg:justify-center print-wrapper"
       >
-        {/* Printable Document Sheet (A4 Proportionate) */}
+        {/* Printable Document Sheet */}
         <div
           id="certificate-print-sheet"
           className="w-[920px] min-w-[920px] bg-white border border-neutral-300 p-8 shadow-sm text-neutral-800 text-[10.5px] leading-[1.3] font-sans shrink-0"
         >
           {/* Header */}
           <div className="flex justify-between items-start pb-2">
-            <div className="flex items-center gap-3 pt-1">
-              <svg className="w-14 h-14 text-[#00623a]" viewBox="0 0 100 100" fill="currentColor">
-                <path d="M50 8L15 43L30 58L50 38L70 58L85 43L50 8Z" />
-                <path d="M50 92L85 57L70 42L50 62L30 42L15 57L50 92Z" />
-                <path d="M42 32L24 50L42 68L48 62L36 50L48 38L42 32Z" fill="#ffffff" />
-                <path d="M58 32L76 50L58 68L52 62L64 50L52 38L58 32Z" fill="#ffffff" />
-              </svg>
-              <span className="text-[28px] font-black tracking-tight text-neutral-900 font-sans">
-                ESICO
-              </span>
+            <div className="pt-1">
+              <img 
+                src="/assets/esico-logo-letters.png" 
+                alt="ESICO Logo" 
+                className="h-16 object-contain" 
+              />
             </div>
 
             <div className="text-right">
@@ -342,43 +338,15 @@ export default function ViewPDF() {
             </div>
           </div>
 
-          {/* Sign-off, QR, Stamp & Verification */}
-          <div className="mt-2.5 flex justify-between items-center text-[10px]">
-            <div className="flex items-center gap-3">
-              <div className="w-16 h-16 border border-neutral-700 bg-white p-1 flex items-center justify-center shrink-0">
-                <svg viewBox="0 0 29 29" className="w-full h-full">
-                  <rect x="0" y="0" width="7" height="7" fill="black" />
-                  <rect x="1" y="1" width="5" height="5" fill="white" />
-                  <rect x="2" y="2" width="3" height="3" fill="black" />
-                  <rect x="22" y="0" width="7" height="7" fill="black" />
-                  <rect x="23" y="1" width="5" height="5" fill="white" />
-                  <rect x="24" y="2" width="3" height="3" fill="black" />
-                  <rect x="0" y="22" width="7" height="7" fill="black" />
-                  <rect x="1" y="23" width="5" height="5" fill="white" />
-                  <rect x="2" y="24" width="3" height="3" fill="black" />
-                  <rect x="9" y="3" width="2" height="2" fill="black" />
-                  <rect x="13" y="2" width="2" height="2" fill="black" />
-                  <rect x="17" y="4" width="2" height="2" fill="black" />
-                  <rect x="8" y="9" width="3" height="2" fill="black" />
-                  <rect x="12" y="11" width="2" height="3" fill="black" />
-                  <rect x="16" y="8" width="3" height="2" fill="black" />
-                  <rect x="10" y="15" width="2" height="3" fill="black" />
-                  <rect x="14" y="16" width="3" height="2" fill="black" />
-                  <rect x="18" y="14" width="2" height="3" fill="black" />
-                  <rect x="22" y="11" width="3" height="2" fill="black" />
-                  <rect x="11" y="22" width="2" height="2" fill="black" />
-                  <rect x="15" y="24" width="3" height="2" fill="black" />
-                  <rect x="22" y="22" width="4" height="2" fill="black" />
-                </svg>
-              </div>
-
-              <div className="w-16 h-16 rounded-full border-2 border-dashed border-[#1e40af] flex flex-col items-center justify-center text-[7px] font-bold text-[#1e40af] text-center rotate-[-8deg] shrink-0 select-none">
-                <span className="leading-tight font-serif" dir="rtl">شركة مساندة الإعمار</span>
-                <span className="text-[5.5px] tracking-tight">EMAAR SUPPORT</span>
-                <span className="text-[6px] border-y border-[#1e40af] px-1 font-mono">2054100036</span>
-              </div>
-
-              <div>
+          {/* VERIFICATION & SIGN-OFF ASSETS */}
+          <div className="mt-3 flex justify-between items-center text-[10px]">
+            
+            {/* Left side: QR, QA/QC, Signature */}
+            <div className="flex items-center gap-1">
+              <img src="/assets/qr-code.png" alt="QR Code" className="w-16 h-16 object-contain" />
+              <img src="/assets/qa-qc.png" alt="QA QC Seal" className="w-16 h-16 object-contain" />
+              <img src="/assets/signature.png" alt="QC Signature" className="w-14 h-12 object-contain -ml-6 mix-blend-multiply" />
+              <div className="ml-3">
                 <p className="text-neutral-700 text-[9.5px]">For confirmation scan QR code</p>
                 <p className="text-neutral-900 font-semibold text-[10px]">
                   search with report number : <strong className="font-bold">{cert.report_number}</strong>
@@ -386,6 +354,7 @@ export default function ViewPDF() {
               </div>
             </div>
 
+            {/* Middle side: Status */}
             <div className="flex flex-col items-center">
               <div className="border border-[#16a34a] px-6 py-1 rounded-[3px] flex items-center gap-1.5 text-[#16a34a] font-bold text-[11.5px]">
                 <span className="w-4 h-4 rounded-full bg-[#16a34a] text-white flex items-center justify-center text-[9px]">
@@ -398,94 +367,40 @@ export default function ViewPDF() {
               </div>
             </div>
 
+            {/* Right side: Inspector Assets */}
             <div className="text-right flex flex-col items-end">
               <p className="font-medium text-neutral-900 text-[10px]">
                 Inspected by : <strong className="font-bold">{cert.inspector_name}</strong>
               </p>
-              <div className="mt-1 flex items-center gap-2">
-                <div className="w-14 h-12 border border-[#1e40af] rounded flex flex-col items-center justify-center text-[6.5px] text-[#1e40af] font-bold rotate-2 select-none">
-                  <span>ESICO</span>
-                  <span>INSPECTOR</span>
-                  <span className="text-[5.5px]">2054100036</span>
-                </div>
-
-                {cert.signature ? (
+              <div className="mt-1 flex items-center gap-1">
+                <img src="/assets/inspector-seal.png" alt="Inspector Seal" className="w-16 h-16 object-contain" />
+                {cert.signature && (
                   <img
                     src={`https://esicoksa.com/backend/media/signatures/${cert.signature}`}
                     alt="Inspector Signature"
-                    className="max-h-10 max-w-[80px] object-contain"
+                    className="max-h-12 max-w-[80px] object-contain mix-blend-multiply"
                     onError={(e) => {
                       (e.target as HTMLElement).style.display = "none";
                     }}
                   />
-                ) : (
-                  <svg className="w-20 h-10 text-neutral-900" viewBox="0 0 100 40">
-                    <path
-                      d="M10,25 C25,5 30,35 45,15 C55,5 60,30 80,10 C90,2 75,38 95,20"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                    />
-                  </svg>
                 )}
               </div>
             </div>
+
           </div>
 
-          {/* Footer Badges */}
-          <div className="mt-5 pt-2.5 border-t border-neutral-300 flex items-center justify-between text-[7.5px] font-bold text-neutral-700 gap-1 select-none">
-            <div className="border border-neutral-400 px-1 py-0.5 text-center leading-tight">
-              LEEA<br /><span className="text-[5.5px] font-normal">Full Member</span>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <div className="w-3.5 h-3.5 bg-[#00843D] rounded-xs flex items-center justify-center text-white text-[6px]">✦</div>
-              <div className="text-left leading-tight">
-                <div className="text-[7.5px] font-serif" dir="rtl">أرامكو السعودية</div>
-                <div className="text-[7px] text-[#00843D] font-bold">saudi aramco</div>
-                <div className="text-[6.5px] text-neutral-500 font-mono">10056897</div>
-              </div>
-            </div>
-
-            <div className="border border-cyan-700 text-cyan-800 px-1 py-0.5 text-center text-[7px]">
-              EP-Q4634
-            </div>
-
-            <div className="text-center leading-tight">
-              <div className="text-[8px] font-black tracking-widest text-neutral-900">NEOM نيوم</div>
-              <div className="text-[6px] text-neutral-500 font-mono">1100004498</div>
-            </div>
-
-            <div className="text-center leading-tight">
-              <div className="text-teal-700 text-[7px]" dir="rtl">شركة المياه الوطنية</div>
-              <div className="text-[5.5px] text-neutral-500">National Water Company</div>
-              <div className="text-[6px] font-mono text-neutral-600">33564</div>
-            </div>
-
-            <div className="border border-amber-600 text-amber-800 rounded-full px-1.5 py-0.5 text-center text-[6.5px]">
-              10739
-            </div>
-
-            <div className="text-center leading-tight">
-              <div className="text-teal-600 font-black text-[9px]">سابك</div>
-              <div className="text-teal-600 font-bold text-[7.5px] -mt-0.5">sabic</div>
-              <div className="text-[6px] font-mono text-neutral-500">001052261</div>
-            </div>
-
-            <div className="text-center leading-tight">
-              <div className="text-blue-800 text-[7px]" dir="rtl">الشركة السعودية للكهرباء</div>
-              <div className="text-[5.5px] text-neutral-500">Saudi Electricity Company</div>
-              <div className="text-[6px] font-mono text-neutral-600">05022531</div>
-            </div>
-
-            <div className="border-2 border-blue-900 text-blue-900 rounded-full px-1.5 py-0.5 text-center text-[7.5px] font-serif font-black tracking-tighter">
-              IAF
-            </div>
-
-            <div className="border border-neutral-700 px-1 py-0.5 text-center font-serif text-[7.5px] leading-tight">
-              IAS<br /><span className="text-[5px] tracking-tighter block font-sans">ACCREDITED</span>
-            </div>
+          {/* FOOTER ACCREDITATION LOGOS */}
+          <div className="mt-5 pt-3 border-t border-neutral-300 flex items-center justify-between gap-1 select-none">
+            <img src="/assets/leea.png" alt="LEEA" className="h-8 object-contain" />
+            <img src="/assets/aramco.png" alt="Saudi Aramco" className="h-8 object-contain" />
+            <img src="/assets/ep-muncipality.png" alt="Eastern Province Municipality" className="h-8 object-contain" />
+            <img src="/assets/neom.png" alt="NEOM" className="h-8 object-contain" />
+            <img src="/assets/national-water-company.png" alt="National Water Company" className="h-8 object-contain" />
+            <img src="/assets/royal-commission-logo.png" alt="Royal Commission" className="h-8 object-contain" />
+            <img src="/assets/sabic-logo.png" alt="SABIC" className="h-8 object-contain" />
+            <img src="/assets/saudi-electric-company.png" alt="Saudi Electricity Company" className="h-8 object-contain" />
+            <img src="/assets/iaf-logo.png" alt="IAF" className="h-8 object-contain" />
+            <img src="/assets/accredition.png" alt="IAS Accreditation" className="h-8 object-contain" />
           </div>
         </div>
       </div>
@@ -532,6 +447,7 @@ export default function ViewPDF() {
             width: 100% !important;
           }
           #certificate-print-sheet {
+            font-family: 'Ubuntu', sans-serif !important;
             width: 100% !important;
             max-width: 100% !important;
             min-width: 0 !important;

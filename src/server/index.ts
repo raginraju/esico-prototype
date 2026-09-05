@@ -155,6 +155,9 @@ app.post("/api/certificates", async (c) => {
 
 // ---------------- STATIC ASSETS FALLBACK ----------------
 
+// Strict 404 for unmapped API routes so they return JSON, not HTML
+app.all("/api/*", (c) => c.json({ error: "Endpoint not found" }, 404)); 
+
 // Serve Vite frontend build from dist/ for all non-API paths
 app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw as any) as any);
 

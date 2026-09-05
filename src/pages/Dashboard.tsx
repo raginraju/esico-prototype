@@ -27,8 +27,8 @@ export default function Dashboard() {
   const handleNavClick = (item: (typeof navItems)[0]) => {
     setIsMobileMenuOpen(false);
     if (item.isLogout) {
-      localStorage.removeItem("esico_demo_token");
-      navigate("/login");
+      localStorage.clear();
+      navigate("/login", { replace: true });
     } else {
       setActiveTab(item.label);
       if (item.label === "Certificates") {

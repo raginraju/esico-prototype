@@ -1,11 +1,13 @@
-// src/components/ui/AdminSidebar.tsx
+// src/layouts/AdminSidebar.tsx
 import { useLocation, useNavigate } from "react-router-dom";
 
-interface AdminSidebarProps {
+export interface AdminSidebarProps {
   isOpen: boolean;
+  isMobile: boolean;
+  onClose?: () => void; // Added onClose prop
 }
 
-export default function AdminSidebar({ isOpen }: AdminSidebarProps) {
+export default function AdminSidebar({ isOpen, isMobile, onClose }: AdminSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -69,6 +71,9 @@ export default function AdminSidebar({ isOpen }: AdminSidebarProps) {
   ];
 
   const handleNavClick = (item: (typeof menuItems)[0]) => {
+    if (isMobile && onClose) {
+      onClose(); // Retract the drawer on mobile
+    }
     if (item.isLogout) {
       localStorage.clear();
       navigate("/login", { replace: true });
@@ -77,18 +82,43 @@ export default function AdminSidebar({ isOpen }: AdminSidebarProps) {
     navigate(item.path);
   };
 
+  if (isMobile) {
+    return (
+      <div
+        className={`fixed inset-y-0 right-0 z-50 w-72 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col border-l border-[#ebedf2] ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <nav className="py-2 space-y-1 flex-1 overflow-y-auto">
+          {menuItems.map((item) => {
+            const isActive = location.pathname.startsWith(item.path);
+            return (
+              <button
+                key={item.label}
+                onClick={() => handleNavClick(item)}
+                className={`w-full flex items-center justify-between px-7 py-4 text-[14px] transition-colors cursor-pointer text-left ${
+                  isActive ? "text-[#b66dff] font-medium bg-neutral-50" : "text-[#495057] hover:bg-neutral-50"
+                }`}
+              >
+                <span>{item.label}</span>
+                <span className={isActive ? "text-[#b66dff]" : "text-[#c3bdbd]"}>{item.icon}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+    );
+  }
+
   return (
     <aside
       className={`${
-        isOpen ? "w-[240px]" : "w-0 -translate-x-full md:w-0"
-      } transition-all duration-200 bg-white shrink-0 border-r border-[#ebedf2] flex flex-col py-4 select-none overflow-y-auto`}
+        isOpen ? "w-[240px]" : "w-0"
+      } transition-all duration-200 bg-white shrink-0 border-r border-[#ebedf2] flex flex-col py-4 select-none overflow-hidden`}
     >
-      <nav className="space-y-1">
+      <nav className="space-y-1 w-[240px]">
         {menuItems.map((item) => {
-          const isActive =
-            location.pathname === item.path ||
-            (item.path === "/idcards" && (location.pathname === "/idcards" || location.pathname === "/id-cards"));
-
+          const isActive = location.pathname.startsWith(item.path);
           return (
             <button
               key={item.label}

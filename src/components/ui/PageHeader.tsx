@@ -1,5 +1,5 @@
 // src/components/ui/PageHeader.tsx
-import type { ReactNode } from "react";
+import { type ReactNode } from "react";
 
 interface PageHeaderProps {
   title: string;

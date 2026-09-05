@@ -6,7 +6,6 @@ import { and, desc, eq, like, or } from "drizzle-orm";
 import { users, certificates, type NewCertificate } from "../../db/schema";
 import type { D1Database } from "@cloudflare/workers-types";
 
-// 1. Worker runtime environment bindings
 export interface Env {
   DB: D1Database;
   ASSETS: {
@@ -16,7 +15,6 @@ export interface Env {
 
 const app = new Hono<{ Bindings: Env }>();
 
-// Strip trailing slashes so /api/certificates/ cleanly matches /api/certificates
 app.use(trimTrailingSlash());
 
 // ---------------- AUTH ----------------
@@ -93,7 +91,6 @@ app.get("/api/certificates", async (c) => {
 });
 
 // GET /api/certificates/:id (Detail / Search / QR Scan)
-// Matches report_number ("ESICO-LFT-R26-8941"), unique_id ("6a279716eb913"), or id ("9122")
 app.get("/api/certificates/:id", async (c) => {
   const identifier = c.req.param("id").trim();
   const db = drizzle(c.env.DB);
@@ -130,7 +127,7 @@ app.get("/api/certificates/:id", async (c) => {
 
 // POST /api/certificates (Create Certificate)
 app.post("/api/certificates", async (c) => {
-  const body = await c.req.json<Record<string, any>>().catch(() => ({}));
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, any>;
 
   const reportNumber = body.report_number || body.reportNo;
   const employer = body.employer_name_address || body.employer;
@@ -215,12 +212,10 @@ app.post("/api/certificates", async (c) => {
 
 // ---------------- STATIC ASSETS & 404 FALLBACK ----------------
 
-// Strict 404 for unmapped API routes so they return JSON, not HTML
 app.all("/api/*", (c) =>
   c.json({ status: "error", message: "Endpoint not found" }, 404)
 );
 
-// Serve Vite frontend build from dist/ for all non-API paths
 app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw as any) as any);
 
 export default app;

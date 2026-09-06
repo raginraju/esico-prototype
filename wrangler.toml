@@ -19,3 +19,7 @@ migrations_dir = "./migrations"
 #binding = "ID_CARD_BUCKET"
 #bucket_name = "id-cards-storage"
 
+[observability.logs]
+enabled = false
+invocation_logs = true
+

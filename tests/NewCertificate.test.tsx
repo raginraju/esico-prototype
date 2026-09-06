@@ -13,6 +13,57 @@ describe("NewCertificate", () => {
     expect(screen.getByPlaceholderText("Enter custom certificate title...")).toBeInTheDocument();
   });
 
+  it("prefills the form when duplicating a certificate", () => {
+    render(
+      <NewCertificate />,
+      {
+        wrapper: ({ children }) => (
+          <MemoryRouter
+            initialEntries={[{
+              pathname: "/certificates/new",
+              state: {
+                duplicate: {
+                  report_number: "ESICO-001",
+                  certificate_title: "Test Certificate",
+                  selected_date: "2026-09-01",
+                  applied_standards: "BS 7121",
+                  sticker_number: "ST-1",
+                  employer_name_address: "Acme Co",
+                  location: "Ras Tanura",
+                  equipment_id: "EQ-1",
+                  equipment_description: "Test crane",
+                  safe_working_loads: "5T",
+                  manufacturer_name: "Acme",
+                  manufacture_date: "2020",
+                  first_examined: "Yes",
+                  installed_correctly: "Yes",
+                  months_interval: "6",
+                  exam_scheme: "Yes",
+                  after_occur: "No",
+                  defect: "NONE",
+                  iminent_danger: "No",
+                  defect2: "N/A",
+                  repair_renewal: "NONE",
+                  any_tests_carried: "NONE",
+                  observation: "Clear",
+                  safe_to_operate: "Yes",
+                  date_of_issue: "2026-09-01",
+                },
+              },
+            }]}
+          >
+            {children}
+          </MemoryRouter>
+        ),
+      },
+    );
+
+    expect(screen.getByText("Duplicate Certificate")).toBeInTheDocument();
+    expect(screen.getByDisplayValue(/^ESICO-001-COPY-/)).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Acme Co")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Test crane")).toBeInTheDocument();
+  });
+
   it("validates required fields before submitting", () => {
     render(<NewCertificate />, { wrapper: MemoryRouter });
     const reportNumber = screen.getByPlaceholderText("ESICO-LFT-RXX-XXX");

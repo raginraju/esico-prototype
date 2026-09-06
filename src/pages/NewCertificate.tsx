@@ -1,8 +1,10 @@
 // src/pages/NewCertificate.tsx
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { authHeaders } from "../lib/utils";
+import type { CertificateRecord } from "../types/certificate";
 
 const CERTIFICATE_TITLES = [
   "CERTIFICATE OF THOROUGH EXAMINATION AND /OR TEST",
@@ -13,6 +15,7 @@ const CERTIFICATE_TITLES = [
 
 export default function NewCertificate() {
   const navigate = useNavigate();
+  const routeLocation = useLocation();
   const navigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
@@ -59,6 +62,42 @@ export default function NewCertificate() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+
+  useEffect(() => {
+    const duplicate = (routeLocation.state as { duplicate?: CertificateRecord } | null)?.duplicate;
+    if (!duplicate) return;
+
+    const copySuffix = `-COPY-${Date.now().toString().slice(-4)}`;
+    const originalTitle = duplicate.certificate_title || CERTIFICATE_TITLES[0];
+
+    setTitleType(CERTIFICATE_TITLES.includes(originalTitle) ? "existing" : "new");
+    setSelectedTitle(CERTIFICATE_TITLES.includes(originalTitle) ? originalTitle : CERTIFICATE_TITLES[0]);
+    setCustomTitle(CERTIFICATE_TITLES.includes(originalTitle) ? "" : originalTitle);
+    setDateOfExam(duplicate.selected_date || new Date().toISOString().split("T")[0]);
+    setAppliedStandards(duplicate.applied_standards || "");
+    setReportNumber(`${duplicate.report_number}${copySuffix}`);
+    setStickerNumber(duplicate.sticker_number || "");
+    setEmployer(duplicate.employer_name_address || "");
+    setLocation(duplicate.location || "");
+    setEquipmentId(duplicate.equipment_id || "");
+    setEquipmentDescription(duplicate.equipment_description || "");
+    setSafeWorkingLoads(duplicate.safe_working_loads || "");
+    setManufacturerName(duplicate.manufacturer_name || "");
+    setManufactureDate(duplicate.manufacture_date || "");
+    setFirstExamined(duplicate.first_examined || "No");
+    setInstalledCorrectly(duplicate.installed_correctly || "No");
+    setMonthsInterval(duplicate.months_interval || "6");
+    setExamScheme(duplicate.exam_scheme || "Yes");
+    setAfterOccur(duplicate.after_occur || "No");
+    setDefect(duplicate.defect || "NONE");
+    setIminentDanger(duplicate.iminent_danger || "No");
+    setDefectDate(duplicate.defect2 || "");
+    setRepairRenewal(duplicate.repair_renewal || "");
+    setTestsCarried(duplicate.any_tests_carried || "NONE");
+    setObservation(duplicate.observation || "");
+    setSafeToOperate(duplicate.safe_to_operate || "Yes");
+    setDateOfIssue(duplicate.date_of_issue || new Date().toISOString().split("T")[0]);
+  }, [routeLocation.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,7 +188,11 @@ export default function NewCertificate() {
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
-        <h3 className="text-xl font-bold text-[#343a40]">Add New Certificate</h3>
+        <h3 className="text-xl font-bold text-[#343a40]">
+          {(routeLocation.state as { duplicate?: CertificateRecord } | null)?.duplicate
+            ? "Duplicate Certificate"
+            : "Add New Certificate"}
+        </h3>
       </div>
 
       <div className="bg-white rounded-[4px] shadow-[0_0_10px_rgba(0,0,0,0.03)] border border-[#ebedf2]">

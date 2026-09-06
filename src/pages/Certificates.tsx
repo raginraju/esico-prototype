@@ -1,24 +1,14 @@
 // src/pages/Certificates.tsx
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { FileCheck } from "lucide-react";
+import { Copy, FileCheck } from "lucide-react";
 import PageHeader from "../components/ui/PageHeader";
 import { authHeaders } from "../lib/utils";
-
-interface CertificateItem {
-  id: string;
-  unique_id: string;
-  report_number: string;
-  sticker_number: string;
-  location: string;
-  selected_date: string;
-  inspector_name: string;
-  inspected_by: string;
-}
+import type { CertificateRecord } from "../types/certificate";
 
 export default function Certificates() {
   const navigate = useNavigate();
-  const [certificates, setCertificates] = useState<CertificateItem[]>([]);
+  const [certificates, setCertificates] = useState<CertificateRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters State
@@ -53,7 +43,7 @@ export default function Certificates() {
       const json = await res.json();
 
       if (json.status === "success" && Array.isArray(json.data)) {
-        let filtered = json.data as CertificateItem[];
+        let filtered = json.data as CertificateRecord[];
 
         if (fromDate) {
           filtered = filtered.filter((c) => c.selected_date >= fromDate);
@@ -268,6 +258,16 @@ export default function Certificates() {
                             <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                             <path d="m15 5 4 4" />
                           </svg>
+                        </button>
+
+                        {/* Duplicate Action */}
+                        <button
+                          onClick={() => navigate("/certificates/new", { state: { duplicate: cert } })}
+                          className="p-1 hover:text-[#6f42c1] transition-colors cursor-pointer"
+                          title="Duplicate certificate"
+                          aria-label="Duplicate certificate"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
                         </button>
 
                         {/* PDF View Action */}

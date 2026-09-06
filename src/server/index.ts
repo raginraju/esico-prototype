@@ -1,5 +1,6 @@
 // src/server/index.ts
 import { Hono } from "hono";
+import { logger as requestLogger } from "hono/logger";
 import { trimTrailingSlash } from "hono/trailing-slash";
 import auth from "./routes/auth";
 import certificatesRouter from "./routes/certificates";
@@ -9,6 +10,7 @@ import type { Env } from "./env";
 const app = new Hono<{ Bindings: Env }>();
 
 app.use(trimTrailingSlash());
+app.use("*", requestLogger());
 
 // ---------------- MOUNT ROUTERS ----------------
 

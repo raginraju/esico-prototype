@@ -5,6 +5,7 @@ import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import { certificates, type NewCertificate } from "../../../db/schema";
 import type { Env } from "../env";
 import { getRequestActor } from "../lib/requestActor";
+import { auditLogger } from "../lib/logger";
 
 const certificatesRouter = new Hono<{ Bindings: Env }>();
 
@@ -56,7 +57,7 @@ certificatesRouter.get("/", async (c) => {
 
   const total = totalRecord?.count || 0;
 
-  console.info("[certificates.list] certificates retrieved", {
+  auditLogger.info("certificates.list", "Certificates retrieved", {
     actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
     page,
     limit,
@@ -99,7 +100,7 @@ certificatesRouter.get("/:id", async (c) => {
     .get();
 
   if (!cert) {
-    console.warn("[certificates.detail] certificate not found", {
+    auditLogger.warn("certificates.detail", "Certificate not found", {
       actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
       item: { type: "certificate", reference: identifier },
     });
@@ -113,7 +114,7 @@ certificatesRouter.get("/:id", async (c) => {
     );
   }
 
-  console.info("[certificates.detail] certificate retrieved", {
+  auditLogger.info("certificates.detail", "Certificate retrieved", {
     actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
     item: { type: "certificate", reference: identifier },
   });
@@ -135,7 +136,7 @@ certificatesRouter.post("/", async (c) => {
   const equipmentDesc = body.equipment_description || body.equipmentDesc;
 
   if (!reportNumber || !employer || !equipmentDesc) {
-    console.warn("[certificates.create] rejected request: missing required fields", {
+    auditLogger.warn("certificates.create", "Rejected request: missing required fields", {
       actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
       item: { type: "certificate", reference: reportNumber || "unspecified" },
     });
@@ -208,7 +209,7 @@ certificatesRouter.post("/", async (c) => {
   const db = drizzle(c.env.DB);
   await db.insert(certificates).values(newCert);
 
-  console.info("[certificates.create] certificate created", {
+  auditLogger.info("certificates.create", "Certificate created", {
     actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
     item: { type: "certificate", reference: newCert.report_number },
   });
@@ -237,7 +238,7 @@ certificatesRouter.put("/:id", async (c) => {
     .get();
 
   if (!existing) {
-    console.warn("[certificates.update] certificate not found", {
+    auditLogger.warn("certificates.update", "Certificate not found", {
       actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
       item: { type: "certificate", reference: id },
     });
@@ -255,7 +256,7 @@ certificatesRouter.put("/:id", async (c) => {
     .set(updatePayload)
     .where(eq(certificates.id, id));
 
-  console.info("[certificates.update] certificate updated", {
+  auditLogger.info("certificates.update", "Certificate updated", {
     actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
     item: { type: "certificate", reference: id },
     fields: Object.keys(updatePayload).filter((field) => field !== "updated_on"),
@@ -275,7 +276,7 @@ certificatesRouter.delete("/:id", async (c) => {
 
   await db.delete(certificates).where(eq(certificates.id, id));
 
-  console.info("[certificates.delete] certificate deleted", {
+  auditLogger.info("certificates.delete", "Certificate deleted", {
     actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
     item: { type: "certificate", reference: id },
   });

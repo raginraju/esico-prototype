@@ -5,6 +5,7 @@ import { desc, eq } from "drizzle-orm";
 import { idCards, type NewIDCard } from "../../../db/schema";
 import type { Env } from "../env";
 import { getRequestActor } from "../lib/requestActor";
+import { auditLogger } from "../lib/logger";
 
 const idCardsRouter = new Hono<{ Bindings: Env }>();
 
@@ -17,7 +18,7 @@ idCardsRouter.get("/", async (c) => {
     .from(idCards)
     .orderBy(desc(idCards.created_at));
 
-  console.info("[idcards.list] ID cards retrieved", {
+  auditLogger.info("idcards.list", "ID cards retrieved", {
     actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
     count: records.length,
   });
@@ -41,7 +42,7 @@ idCardsRouter.post("/", async (c) => {
   const file = body["file"];
 
   if (!name || !file_number || !civil_id_number) {
-    console.warn("[idcards.create] rejected request: missing required fields", {
+    auditLogger.warn("idcards.create", "Rejected request: missing required fields", {
       actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
       item: { type: "id_card", reference: "unspecified" },
     });
@@ -77,7 +78,7 @@ idCardsRouter.post("/", async (c) => {
   const db = drizzle(c.env.DB);
   await db.insert(idCards).values(newCard);
 
-  console.info("[idcards.create] ID card created", {
+  auditLogger.info("idcards.create", "ID card created", {
     actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
     item: { type: "id_card", reference: cardId },
     hasFile: fileUrl !== null,
@@ -101,7 +102,7 @@ idCardsRouter.delete("/:id", async (c) => {
 
   await db.delete(idCards).where(eq(idCards.id, id));
 
-  console.info("[idcards.delete] ID card deleted", {
+  auditLogger.info("idcards.delete", "ID card deleted", {
     actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
     item: { type: "id_card", reference: id },
   });

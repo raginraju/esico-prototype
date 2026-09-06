@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { and, eq } from "drizzle-orm";
 import { users } from "../../../db/schema";
 import type { Env } from "../env"; 
+import { auditLogger } from "../lib/logger";
 
 const auth = new Hono<{ Bindings: Env }>();
 
@@ -13,7 +14,7 @@ auth.post("/login", async (c) => {
     .catch(() => null);
 
   if (!body?.email || !body?.password) {
-    console.warn("[auth.login] rejected request: missing credentials", {
+    auditLogger.warn("auth.login", "Rejected request: missing credentials", {
       actor: { id: "unknown", authenticated: false, role: "unknown" },
     });
     return c.json({ error: "Missing email or password" }, 400);
@@ -25,7 +26,7 @@ auth.post("/login", async (c) => {
     authenticated: false,
     role: "unknown",
   };
-  console.info("[auth.login] authenticating user", { actor });
+  auditLogger.info("auth.login", "Authenticating user", { actor });
 
   const db = drizzle(c.env.DB);
   const user = await db
@@ -40,11 +41,11 @@ auth.post("/login", async (c) => {
     .get();
 
   if (!user) {
-    console.warn("[auth.login] rejected request: invalid credentials", { actor });
+    auditLogger.warn("auth.login", "Rejected request: invalid credentials", { actor });
     return c.json({ error: "Invalid credentials" }, 401);
   }
 
-  console.info("[auth.login] authentication succeeded", {
+  auditLogger.info("auth.login", "Authentication succeeded", {
     actor: { id: user.id, authenticated: true, role: user.role },
   });
 

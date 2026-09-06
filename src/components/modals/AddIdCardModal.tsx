@@ -1,5 +1,5 @@
 // src/components/modals/AddIdCardModal.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { authHeaders } from "../../lib/utils";
 
 interface AddIdCardModalProps {
@@ -25,6 +25,11 @@ export default function AddIdCardModal({
   const [showError, setShowError] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -91,7 +96,7 @@ export default function AddIdCardModal({
       setShowSuccess(true);
       onSuccess();
 
-      setTimeout(() => {
+      closeTimerRef.current = setTimeout(() => {
         onClose();
       }, 1000);
     } catch (err: any) {

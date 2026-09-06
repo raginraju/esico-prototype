@@ -14,6 +14,7 @@ export default function ViewPDF() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     window.scrollTo(0, 0);
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollLeft = 0;
@@ -26,8 +27,13 @@ export default function ViewPDF() {
 
     const headers = authHeaders();
     const request = Object.keys(headers).length
-      ? fetch(`/api/certificates/${encodeURIComponent(searchIdentifier)}`, { headers })
-      : fetch(`/api/certificates/${encodeURIComponent(searchIdentifier)}`);
+      ? fetch(`/api/certificates/${encodeURIComponent(searchIdentifier)}`, {
+          headers,
+          signal: controller.signal,
+        })
+      : fetch(`/api/certificates/${encodeURIComponent(searchIdentifier)}`, {
+          signal: controller.signal,
+        });
 
     request
       .then(async (res) => {
@@ -39,6 +45,8 @@ export default function ViewPDF() {
       })
       .catch((err: any) => setError(err.message || "Failed to load certificate"))
       .finally(() => setLoading(false));
+
+    return () => controller.abort();
   }, [id]);
 
   const handlePrint = () => {

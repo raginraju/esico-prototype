@@ -1,5 +1,5 @@
 // src/pages/NewCertificate.tsx
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { authHeaders } from "../lib/utils";
@@ -13,6 +13,11 @@ const CERTIFICATE_TITLES = [
 
 export default function NewCertificate() {
   const navigate = useNavigate();
+  const navigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (navigationTimerRef.current) clearTimeout(navigationTimerRef.current);
+  }, []);
 
   // Form Field States
   const [titleType, setTitleType] = useState<"existing" | "new">("existing");
@@ -122,7 +127,7 @@ export default function NewCertificate() {
       }
 
       setSuccessMsg("Certificate has been created successfully!");
-      setTimeout(() => {
+      navigationTimerRef.current = setTimeout(() => {
         navigate("/certificates");
       }, 1000);
     } catch (err: any) {

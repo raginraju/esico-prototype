@@ -16,7 +16,7 @@ describe("IDCards", () => {
     expect(screen.getByText("1 - 1 of 1 Entries")).toBeInTheDocument();
   });
 
-  it("opens the add-card modal", async () => {
+  it("opens the generated-card modal and preserves the old upload modal", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ status: "success", data: [] }))
     );
@@ -24,6 +24,10 @@ describe("IDCards", () => {
     await screen.findByText(/No ID cards found/);
 
     fireEvent.click(screen.getByRole("button", { name: "Add New" }));
+    expect(screen.getByText("Generate ID Card")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add New \(Old\)" }));
 
     expect(screen.getByText("Add New ID Card")).toBeInTheDocument();
   });

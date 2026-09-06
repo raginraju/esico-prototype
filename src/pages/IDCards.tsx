@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { CreditCard } from "lucide-react";
 import PageHeader from "../components/ui/PageHeader";
 import AddIdCardModal from "../components/modals/AddIdCardModal";
+import GenerateIdCardModal from "../components/modals/GenerateIdCardModal";
 import { authHeaders } from "../lib/utils";
 
 interface IDCardItem {
@@ -18,6 +19,7 @@ interface IDCardItem {
 export default function IDCards() {
   const [cards, setCards] = useState<IDCardItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchCards = async () => {
@@ -64,10 +66,14 @@ export default function IDCards() {
       <PageHeader
         title="ID Cards"
         icon={<CreditCard className="w-5 h-5" />}
-        actionButton={{
+        actionButtons={[{
           label: "Add New",
+          onClick: () => setIsGenerateModalOpen(true),
+        }, {
+          label: "Add New (Old)",
           onClick: () => setIsModalOpen(true),
-        }}
+          secondary: true,
+        }]}
       />
 
       <div className="bg-white rounded-[4px] shadow-[0_0_10px_rgba(0,0,0,0.03)] border border-[#ebedf2] overflow-hidden">
@@ -93,7 +99,7 @@ export default function IDCards() {
               ) : cards.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-[#6c757d]">
-                    No ID cards found. Click "Add New" to create one.
+                    No ID cards found. Click "Add New" to generate one.
                   </td>
                 </tr>
               ) : (
@@ -199,6 +205,11 @@ export default function IDCards() {
       <AddIdCardModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchCards}
+      />
+      <GenerateIdCardModal
+        isOpen={isGenerateModalOpen}
+        onClose={() => setIsGenerateModalOpen(false)}
         onSuccess={fetchCards}
       />
     </>

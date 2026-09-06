@@ -44,7 +44,7 @@ describe("auth API route", () => {
     await expect(response.json()).resolves.toEqual({ error: "Invalid credentials" });
   });
 
-  it("returns a token for valid credentials", async () => {
+  it("sets a secure HttpOnly session cookie for valid credentials", async () => {
     const response = await app.fetch(
       new Request("http://localhost/api/auth/login", {
         method: "POST",
@@ -53,9 +53,22 @@ describe("auth API route", () => {
       }),
       context.env
     );
-    const body = await response.json() as { success: boolean; token: string; user: { role: string } };
+    const body = await response.json() as { success: boolean; user: { role: string } };
 
     expect(response.status).toBe(200);
-    expect(body).toMatchObject({ success: true, token: "demo_token_u_admin", user: { role: "ADMIN" } });
+    expect(body).toMatchObject({ success: true, user: { role: "ADMIN" } });
+    expect(response.headers.get("set-cookie")).toMatch(/esico_session=.+HttpOnly/);
+    expect(response.headers.get("set-cookie")).toMatch(/Secure/);
+    expect(response.headers.get("set-cookie")).toMatch(/SameSite=Strict/);
+    expect(response.headers.get("set-cookie")).not.toMatch(/demo_token/);
+
+    const sessionResponse = await app.fetch(
+      new Request("http://localhost/api/auth/session", {
+        headers: { Cookie: response.headers.get("set-cookie")!.split(";")[0] },
+      }),
+      context.env
+    );
+    expect(sessionResponse.status).toBe(200);
+    expect(await sessionResponse.json()).toMatchObject({ authenticated: true });
   });
 });

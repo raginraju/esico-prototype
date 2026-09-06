@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/d1";
 import type { Context } from "hono";
 import { users } from "../../../db/schema";
 import type { Env } from "../env";
+import { verifyJwt } from "./jwt";
 
 type RequestContext = Context<{ Bindings: Env }>;
 
@@ -19,22 +20,21 @@ const anonymousActor: RequestActor = {
 };
 
 export async function getRequestActor(c: RequestContext): Promise<RequestActor> {
-  const authorization = c.req.header("Authorization");
-  const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+  const cookieHeader = c.req.header("Cookie") || "";
+  const token = cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith("esico_session="))
+    ?.slice("esico_session=".length);
 
-  if (!token?.startsWith("demo_token_")) {
-    return anonymousActor;
-  }
-
-  const userId = token.slice("demo_token_".length);
-  if (!userId) {
-    return anonymousActor;
-  }
+  if (!token) return anonymousActor;
+  const payload = await verifyJwt(token, c.env.JWT_SECRET);
+  if (!payload) return anonymousActor;
 
   const user = await drizzle(c.env.DB)
     .select({ id: users.id, email: users.email, role: users.role })
     .from(users)
-    .where(eq(users.id, userId))
+    .where(eq(users.id, payload.sub))
     .get();
 
   return user ?? anonymousActor;

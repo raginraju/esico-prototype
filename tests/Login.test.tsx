@@ -18,9 +18,9 @@ describe("Login", () => {
     expect(screen.getByRole("button", { name: "Sign In" })).toBeInTheDocument();
   });
 
-  it("stores the token after successful login", async () => {
+  it("does not expose the session token to JavaScript after successful login", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ success: true, token: "token-123" }), { status: 200 })
+      new Response(JSON.stringify({ success: true }), { status: 200 })
     );
     render(<Login />, { wrapper: MemoryRouter });
 
@@ -28,7 +28,7 @@ describe("Login", () => {
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "secret" } });
     fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
 
-    await waitFor(() => expect(localStorage.getItem("auth_token")).toBe("token-123"));
+    await waitFor(() => expect(localStorage.getItem("auth_token")).toBeNull());
     expect(fetch).toHaveBeenCalledWith("/api/auth/login", expect.objectContaining({ method: "POST" }));
   });
 

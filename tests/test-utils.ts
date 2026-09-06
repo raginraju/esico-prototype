@@ -15,6 +15,7 @@ export async function getTestBindings(): Promise<TestContext> {
 
   const env: Env = {
     DB: proxy.env.DB,
+    JWT_SECRET: "test-jwt-secret-with-enough-entropy",
     ASSETS: {
       fetch: async () => new Response("Mock Static Asset", { status: 200 }),
     },

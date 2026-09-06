@@ -29,16 +29,11 @@ export default function Login() {
 
       const data = (await res.json()) as {
         success?: boolean;
-        token?: string;
         error?: string;
       };
 
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Invalid email or password");
-      }
-
-      if (data.token) {
-        localStorage.setItem("auth_token", data.token);
       }
 
       navigate("/dashboard");

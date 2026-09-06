@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import ProtectedRoute from "../src/components/ProtectedRoute";
 
 function LoginDestination() {
@@ -13,7 +13,11 @@ function LoginDestination() {
 describe("ProtectedRoute", () => {
   beforeEach(() => localStorage.clear());
 
-  it("redirects unauthenticated users to login and preserves the destination", () => {
+  it("redirects unauthenticated users to login and preserves the destination", async () => {
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ authenticated: false }), { status: 401 })
+    );
+
     render(
       <MemoryRouter initialEntries={["/dashboard"]}>
         <Routes>
@@ -30,12 +34,14 @@ describe("ProtectedRoute", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText("Login destination: /dashboard")).toBeInTheDocument();
+    expect(await screen.findByText("Login destination: /dashboard")).toBeInTheDocument();
     expect(screen.queryByText("Private dashboard")).not.toBeInTheDocument();
   });
 
-  it("renders protected content when an auth token exists", () => {
-    localStorage.setItem("auth_token", "test-token");
+  it("renders protected content when the session endpoint confirms authentication", async () => {
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ authenticated: true }), { status: 200 })
+    );
 
     render(
       <MemoryRouter initialEntries={["/dashboard"]}>
@@ -52,6 +58,6 @@ describe("ProtectedRoute", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText("Private dashboard")).toBeInTheDocument();
+    expect(await screen.findByText("Private dashboard")).toBeInTheDocument();
   });
 });

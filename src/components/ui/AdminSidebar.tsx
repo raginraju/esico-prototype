@@ -76,7 +76,9 @@ export default function AdminSidebar({ isOpen, isMobile, onClose }: AdminSidebar
     }
     if (item.isLogout) {
       localStorage.clear();
-      navigate("/login", { replace: true });
+      void fetch("/api/auth/logout", { method: "POST" })
+        .catch(() => undefined)
+        .finally(() => navigate("/login", { replace: true }));
       return;
     }
     navigate(item.path);

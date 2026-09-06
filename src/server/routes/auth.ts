@@ -14,13 +14,17 @@ auth.post("/login", async (c) => {
 
   if (!body?.email || !body?.password) {
     console.warn("[auth.login] rejected request: missing credentials", {
-      actor: { email: "anonymous", role: "unknown" },
+      actor: { id: "unknown", authenticated: false, role: "unknown" },
     });
     return c.json({ error: "Missing email or password" }, 400);
   }
 
   const email = body.email.trim().toLowerCase();
-  const actor = { email, role: "unknown" };
+  const actor = {
+    id: "unknown",
+    authenticated: false,
+    role: "unknown",
+  };
   console.info("[auth.login] authenticating user", { actor });
 
   const db = drizzle(c.env.DB);
@@ -41,7 +45,7 @@ auth.post("/login", async (c) => {
   }
 
   console.info("[auth.login] authentication succeeded", {
-    actor: { id: user.id, email: user.email, role: user.role },
+    actor: { id: user.id, authenticated: true, role: user.role },
   });
 
   return c.json({

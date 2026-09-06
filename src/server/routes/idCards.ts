@@ -17,7 +17,10 @@ idCardsRouter.get("/", async (c) => {
     .from(idCards)
     .orderBy(desc(idCards.created_at));
 
-  console.info("[idcards.list] ID cards retrieved", { actor, count: records.length });
+  console.info("[idcards.list] ID cards retrieved", {
+    actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
+    count: records.length,
+  });
 
   return c.json({
     status: "success",
@@ -38,7 +41,10 @@ idCardsRouter.post("/", async (c) => {
   const file = body["file"];
 
   if (!name || !file_number || !civil_id_number) {
-    console.warn("[idcards.create] rejected request: missing required fields", { actor });
+    console.warn("[idcards.create] rejected request: missing required fields", {
+      actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
+      item: { type: "id_card", reference: "unspecified" },
+    });
     return c.json(
       {
         status: "error",
@@ -72,8 +78,8 @@ idCardsRouter.post("/", async (c) => {
   await db.insert(idCards).values(newCard);
 
   console.info("[idcards.create] ID card created", {
-    actor,
-    cardId,
+    actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
+    item: { type: "id_card", reference: cardId },
     hasFile: fileUrl !== null,
   });
 
@@ -95,7 +101,10 @@ idCardsRouter.delete("/:id", async (c) => {
 
   await db.delete(idCards).where(eq(idCards.id, id));
 
-  console.info("[idcards.delete] ID card deleted", { actor, cardId: id });
+  console.info("[idcards.delete] ID card deleted", {
+    actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
+    item: { type: "id_card", reference: id },
+  });
 
   return c.json({
     status: "success",

@@ -57,7 +57,7 @@ certificatesRouter.get("/", async (c) => {
   const total = totalRecord?.count || 0;
 
   console.info("[certificates.list] certificates retrieved", {
-    actor,
+    actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
     page,
     limit,
     search: Boolean(search),
@@ -99,7 +99,10 @@ certificatesRouter.get("/:id", async (c) => {
     .get();
 
   if (!cert) {
-    console.warn("[certificates.detail] certificate not found", { actor, identifier });
+    console.warn("[certificates.detail] certificate not found", {
+      actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
+      item: { type: "certificate", reference: identifier },
+    });
     return c.json(
       {
         status: "error",
@@ -110,7 +113,10 @@ certificatesRouter.get("/:id", async (c) => {
     );
   }
 
-  console.info("[certificates.detail] certificate retrieved", { actor, identifier, certificateId: cert.id });
+  console.info("[certificates.detail] certificate retrieved", {
+    actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
+    item: { type: "certificate", reference: identifier },
+  });
 
   return c.json({
     status: "success",
@@ -129,7 +135,10 @@ certificatesRouter.post("/", async (c) => {
   const equipmentDesc = body.equipment_description || body.equipmentDesc;
 
   if (!reportNumber || !employer || !equipmentDesc) {
-    console.warn("[certificates.create] rejected request: missing required fields", { actor });
+    console.warn("[certificates.create] rejected request: missing required fields", {
+      actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
+      item: { type: "certificate", reference: reportNumber || "unspecified" },
+    });
     return c.json(
       {
         status: "error",
@@ -200,9 +209,8 @@ certificatesRouter.post("/", async (c) => {
   await db.insert(certificates).values(newCert);
 
   console.info("[certificates.create] certificate created", {
-    actor,
-    certificateId: newCert.id,
-    reportNumber: newCert.report_number,
+    actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
+    item: { type: "certificate", reference: newCert.report_number },
   });
 
   return c.json(
@@ -229,7 +237,10 @@ certificatesRouter.put("/:id", async (c) => {
     .get();
 
   if (!existing) {
-    console.warn("[certificates.update] certificate not found", { actor, certificateId: id });
+    console.warn("[certificates.update] certificate not found", {
+      actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
+      item: { type: "certificate", reference: id },
+    });
     return c.json({ status: "error", message: "Certificate not found" }, 404);
   }
 
@@ -245,8 +256,8 @@ certificatesRouter.put("/:id", async (c) => {
     .where(eq(certificates.id, id));
 
   console.info("[certificates.update] certificate updated", {
-    actor,
-    certificateId: id,
+    actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
+    item: { type: "certificate", reference: id },
     fields: Object.keys(updatePayload).filter((field) => field !== "updated_on"),
   });
 
@@ -264,7 +275,10 @@ certificatesRouter.delete("/:id", async (c) => {
 
   await db.delete(certificates).where(eq(certificates.id, id));
 
-  console.info("[certificates.delete] certificate deleted", { actor, certificateId: id });
+  console.info("[certificates.delete] certificate deleted", {
+    actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
+    item: { type: "certificate", reference: id },
+  });
 
   return c.json({
     status: "success",

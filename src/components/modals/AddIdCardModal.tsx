@@ -1,5 +1,6 @@
 // src/components/modals/AddIdCardModal.tsx
 import { useState, useEffect } from "react";
+import { authHeaders } from "../../lib/utils";
 
 interface AddIdCardModalProps {
   isOpen: boolean;
@@ -68,6 +69,7 @@ export default function AddIdCardModal({
 
       const res = await fetch("/api/idcards", {
         method: "POST",
+        headers: authHeaders(),
         body: formData,
       });
 

@@ -13,8 +13,15 @@ auth.post("/login", async (c) => {
     .catch(() => null);
 
   if (!body?.email || !body?.password) {
+    console.warn("[auth.login] rejected request: missing credentials", {
+      actor: { email: "anonymous", role: "unknown" },
+    });
     return c.json({ error: "Missing email or password" }, 400);
   }
+
+  const email = body.email.trim().toLowerCase();
+  const actor = { email, role: "unknown" };
+  console.info("[auth.login] authenticating user", { actor });
 
   const db = drizzle(c.env.DB);
   const user = await db
@@ -22,15 +29,20 @@ auth.post("/login", async (c) => {
     .from(users)
     .where(
       and(
-        eq(users.email, body.email.trim().toLowerCase()),
+        eq(users.email, email),
         eq(users.passwordHash, body.password)
       )
     )
     .get();
 
   if (!user) {
+    console.warn("[auth.login] rejected request: invalid credentials", { actor });
     return c.json({ error: "Invalid credentials" }, 401);
   }
+
+  console.info("[auth.login] authentication succeeded", {
+    actor: { id: user.id, email: user.email, role: user.role },
+  });
 
   return c.json({
     success: true,

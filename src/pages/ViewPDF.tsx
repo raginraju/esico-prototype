@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import type { CertificateRecord } from "../types/certificate";
+import { authHeaders } from "../lib/utils";
 
 export default function ViewPDF() {
   const { id } = useParams<{ id: string }>();
@@ -23,7 +24,12 @@ export default function ViewPDF() {
     setLoading(true);
     setError(null);
 
-    fetch(`/api/certificates/${encodeURIComponent(searchIdentifier)}`)
+    const headers = authHeaders();
+    const request = Object.keys(headers).length
+      ? fetch(`/api/certificates/${encodeURIComponent(searchIdentifier)}`, { headers })
+      : fetch(`/api/certificates/${encodeURIComponent(searchIdentifier)}`);
+
+    request
       .then(async (res) => {
         const json = await res.json();
         if (!res.ok || json.status !== "success" || !json.data) {

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { FileCheck } from "lucide-react";
 import PageHeader from "../components/ui/PageHeader";
+import { authHeaders } from "../lib/utils";
 
 interface CertificateItem {
   id: string;
@@ -44,7 +45,11 @@ export default function Certificates() {
         params.append("search", reportNumber.trim());
       }
 
-      const res = await fetch(`/api/certificates?${params.toString()}`);
+      const url = `/api/certificates?${params.toString()}`;
+      const headers = authHeaders();
+      const res = Object.keys(headers).length
+        ? await fetch(url, { headers })
+        : await fetch(url);
       const json = await res.json();
 
       if (json.status === "success" && Array.isArray(json.data)) {
@@ -99,6 +104,7 @@ export default function Certificates() {
     try {
       const res = await fetch(`/api/certificates/${id}`, {
         method: "DELETE",
+        headers: authHeaders(),
       });
       const json = await res.json();
 

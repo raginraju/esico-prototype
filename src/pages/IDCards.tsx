@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { CreditCard } from "lucide-react";
 import PageHeader from "../components/ui/PageHeader";
 import AddIdCardModal from "../components/modals/AddIdCardModal";
+import { authHeaders } from "../lib/utils";
 
 interface IDCardItem {
   id: string;
@@ -22,7 +23,10 @@ export default function IDCards() {
   const fetchCards = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/idcards");
+      const headers = authHeaders();
+      const res = Object.keys(headers).length
+        ? await fetch("/api/idcards", { headers })
+        : await fetch("/api/idcards");
       const json = await res.json();
       if (json.status === "success") {
         setCards(json.data);
@@ -44,6 +48,7 @@ export default function IDCards() {
     try {
       const res = await fetch(`/api/idcards/${id}`, {
         method: "DELETE",
+        headers: authHeaders(),
       });
       const json = await res.json();
       if (json.status === "success") {

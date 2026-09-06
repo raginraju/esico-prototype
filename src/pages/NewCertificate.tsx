@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { authHeaders } from "../lib/utils";
 
 const CERTIFICATE_TITLES = [
   "CERTIFICATE OF THOROUGH EXAMINATION AND /OR TEST",
@@ -110,7 +111,7 @@ export default function NewCertificate() {
     try {
       const res = await fetch("/api/certificates", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(payload),
       });
 

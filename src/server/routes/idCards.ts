@@ -4,16 +4,20 @@ import { drizzle } from "drizzle-orm/d1";
 import { desc, eq } from "drizzle-orm";
 import { idCards, type NewIDCard } from "../../../db/schema";
 import type { Env } from "../env";
+import { getRequestActor } from "../lib/requestActor";
 
 const idCardsRouter = new Hono<{ Bindings: Env }>();
 
 // GET /api/idcards
 idCardsRouter.get("/", async (c) => {
+  const actor = await getRequestActor(c);
   const db = drizzle(c.env.DB);
   const records = await db
     .select()
     .from(idCards)
     .orderBy(desc(idCards.created_at));
+
+  console.info("[idcards.list] ID cards retrieved", { actor, count: records.length });
 
   return c.json({
     status: "success",
@@ -23,6 +27,7 @@ idCardsRouter.get("/", async (c) => {
 
 // POST /api/idcards
 idCardsRouter.post("/", async (c) => {
+  const actor = await getRequestActor(c);
   const body = await c.req.parseBody();
 
   const name = (body["name"] as string)?.trim();
@@ -33,6 +38,7 @@ idCardsRouter.post("/", async (c) => {
   const file = body["file"];
 
   if (!name || !file_number || !civil_id_number) {
+    console.warn("[idcards.create] rejected request: missing required fields", { actor });
     return c.json(
       {
         status: "error",
@@ -65,6 +71,12 @@ idCardsRouter.post("/", async (c) => {
   const db = drizzle(c.env.DB);
   await db.insert(idCards).values(newCard);
 
+  console.info("[idcards.create] ID card created", {
+    actor,
+    cardId,
+    hasFile: fileUrl !== null,
+  });
+
   return c.json(
     {
       status: "success",
@@ -77,10 +89,13 @@ idCardsRouter.post("/", async (c) => {
 
 // DELETE /api/idcards/:id
 idCardsRouter.delete("/:id", async (c) => {
+  const actor = await getRequestActor(c);
   const id = c.req.param("id");
   const db = drizzle(c.env.DB);
 
   await db.delete(idCards).where(eq(idCards.id, id));
+
+  console.info("[idcards.delete] ID card deleted", { actor, cardId: id });
 
   return c.json({
     status: "success",

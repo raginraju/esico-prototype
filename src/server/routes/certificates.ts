@@ -4,11 +4,13 @@ import { drizzle } from "drizzle-orm/d1";
 import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import { certificates, type NewCertificate } from "../../../db/schema";
 import type { Env } from "../env";
+import { getRequestActor } from "../lib/requestActor";
 
 const certificatesRouter = new Hono<{ Bindings: Env }>();
 
 // GET /api/certificates (Search, Filter, Paginated List & Total Count)
 certificatesRouter.get("/", async (c) => {
+  const actor = await getRequestActor(c);
   const search = c.req.query("search")?.trim();
   const status = c.req.query("status")?.trim();
   const page = Math.max(1, Number(c.req.query("page")) || 1);
@@ -54,6 +56,16 @@ certificatesRouter.get("/", async (c) => {
 
   const total = totalRecord?.count || 0;
 
+  console.info("[certificates.list] certificates retrieved", {
+    actor,
+    page,
+    limit,
+    search: Boolean(search),
+    status: status || "all",
+    returned: results.length,
+    total,
+  });
+
   return c.json({
     status: "success",
     message: "Data has been retrieved successfully!",
@@ -70,6 +82,7 @@ certificatesRouter.get("/", async (c) => {
 
 // GET /api/certificates/:id (Detail / Search / QR Scan)
 certificatesRouter.get("/:id", async (c) => {
+  const actor = await getRequestActor(c);
   const identifier = c.req.param("id").trim();
   const db = drizzle(c.env.DB);
 
@@ -86,6 +99,7 @@ certificatesRouter.get("/:id", async (c) => {
     .get();
 
   if (!cert) {
+    console.warn("[certificates.detail] certificate not found", { actor, identifier });
     return c.json(
       {
         status: "error",
@@ -96,6 +110,8 @@ certificatesRouter.get("/:id", async (c) => {
     );
   }
 
+  console.info("[certificates.detail] certificate retrieved", { actor, identifier, certificateId: cert.id });
+
   return c.json({
     status: "success",
     message: "Data has been retrieved successfully!",
@@ -105,6 +121,7 @@ certificatesRouter.get("/:id", async (c) => {
 
 // POST /api/certificates (Create Certificate)
 certificatesRouter.post("/", async (c) => {
+  const actor = await getRequestActor(c);
   const body = (await c.req.json().catch(() => ({}))) as Record<string, any>;
 
   const reportNumber = body.report_number || body.reportNo;
@@ -112,6 +129,7 @@ certificatesRouter.post("/", async (c) => {
   const equipmentDesc = body.equipment_description || body.equipmentDesc;
 
   if (!reportNumber || !employer || !equipmentDesc) {
+    console.warn("[certificates.create] rejected request: missing required fields", { actor });
     return c.json(
       {
         status: "error",
@@ -181,6 +199,12 @@ certificatesRouter.post("/", async (c) => {
   const db = drizzle(c.env.DB);
   await db.insert(certificates).values(newCert);
 
+  console.info("[certificates.create] certificate created", {
+    actor,
+    certificateId: newCert.id,
+    reportNumber: newCert.report_number,
+  });
+
   return c.json(
     {
       status: "success",
@@ -193,6 +217,7 @@ certificatesRouter.post("/", async (c) => {
 
 // PUT /api/certificates/:id (Update Certificate)
 certificatesRouter.put("/:id", async (c) => {
+  const actor = await getRequestActor(c);
   const id = c.req.param("id").trim();
   const body = (await c.req.json().catch(() => ({}))) as Record<string, any>;
   const db = drizzle(c.env.DB);
@@ -204,6 +229,7 @@ certificatesRouter.put("/:id", async (c) => {
     .get();
 
   if (!existing) {
+    console.warn("[certificates.update] certificate not found", { actor, certificateId: id });
     return c.json({ status: "error", message: "Certificate not found" }, 404);
   }
 
@@ -218,6 +244,12 @@ certificatesRouter.put("/:id", async (c) => {
     .set(updatePayload)
     .where(eq(certificates.id, id));
 
+  console.info("[certificates.update] certificate updated", {
+    actor,
+    certificateId: id,
+    fields: Object.keys(updatePayload).filter((field) => field !== "updated_on"),
+  });
+
   return c.json({
     status: "success",
     message: "Certificate updated successfully",
@@ -226,10 +258,13 @@ certificatesRouter.put("/:id", async (c) => {
 
 // DELETE /api/certificates/:id (Delete Certificate)
 certificatesRouter.delete("/:id", async (c) => {
+  const actor = await getRequestActor(c);
   const id = c.req.param("id").trim();
   const db = drizzle(c.env.DB);
 
   await db.delete(certificates).where(eq(certificates.id, id));
+
+  console.info("[certificates.delete] certificate deleted", { actor, certificateId: id });
 
   return c.json({
     status: "success",

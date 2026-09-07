@@ -4,9 +4,12 @@ import { sql } from "drizzle-orm";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
+  name: text("name").notNull().default(""),
+  mobile: text("mobile").notNull().default(""),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   role: text("role").notNull().default("INSPECTOR"),
+  status: text("status").notNull().default("Pending"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 

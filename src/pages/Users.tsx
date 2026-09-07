@@ -1,7 +1,9 @@
 // src/pages/Users.tsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Users as UsersIcon } from "lucide-react";
 import PageHeader from "../components/ui/PageHeader";
+import { authHeaders } from "../lib/utils";
+import AddUserModal from "../components/modals/AddUserModal";
 
 interface UserItem {
   id: string;
@@ -11,21 +13,32 @@ interface UserItem {
   status: "Pending" | "Active" | "Inactive";
 }
 
-const INITIAL_USERS: UserItem[] = [
-  { id: "1", name: "Osama El Fayoumy", mobile: "0596842937", email: "osama@smart-const.com", status: "Pending" },
-  { id: "2", name: "Abdul", mobile: "0561915348", email: "qaduchacha1@outlook.com", status: "Pending" },
-  { id: "3", name: "Umair", mobile: "0591165191", email: "umairyaqoobnagra@gmail.com", status: "Pending" },
-  { id: "4", name: "SvvblsSWVculorkxzFu", mobile: "5786049391", email: "i.tiq.uhip.a.y.uw.91@gmail.com", status: "Pending" },
-  { id: "5", name: "ZDzBlqhYNurMzNkwzjh", mobile: "9079533524", email: "o.tin.o.n.eca.z.o697@gmail.com", status: "Pending" },
-  { id: "6", name: "Muhammad Bilal", mobile: "0544582808", email: "muhammadbilal5556788@gmail.com", status: "Pending" },
-  { id: "7", name: "MUHAMMED AJMAL", mobile: "0567493661", email: "ajmalak5205@gmail.com", status: "Pending" },
-  { id: "8", name: "Malik Najeeb", mobile: "0580713314", email: "maliknajeeb1124@gmail.com", status: "Pending" },
-  { id: "9", name: "Manni Fathi Gubara", mobile: "0537031614", email: "Moanifm@gmail.com", status: "Pending" },
-  { id: "10", name: "Tet", mobile: "1234567890", email: "gh@gmail.com", status: "Pending" },
-];
-
 export default function Users() {
-  const [users] = useState<UserItem[]>(INITIAL_USERS);
+  const [users, setUsers] = useState<UserItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+
+  const loadUsers = async () => {
+      try {
+        setLoading(true);
+        const headers = authHeaders();
+        const response = await fetch("/api/users?page=1&limit=10", Object.keys(headers).length ? { headers } : undefined);
+        const body = await response.json();
+        if (body.status === "success") {
+          setUsers(body.data);
+          setTotal(body.pagination.total);
+        }
+      } catch (error) {
+        console.error("Failed to load users:", error);
+      } finally {
+        setLoading(false);
+      }
+  };
+
+  useEffect(() => {
+    void loadUsers();
+  }, []);
 
   return (
     <>
@@ -34,8 +47,14 @@ export default function Users() {
         icon={<UsersIcon className="w-5 h-5" />}
         actionButton={{
           label: "Add New",
-          onClick: () => alert("Add New User"),
+          onClick: () => setIsAddUserOpen(true),
         }}
+      />
+
+      <AddUserModal
+        isOpen={isAddUserOpen}
+        onClose={() => setIsAddUserOpen(false)}
+        onSuccess={() => void loadUsers()}
       />
 
       {/* White Table Card */}
@@ -51,7 +70,11 @@ export default function Users() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#ebedf2] text-[13px]">
-              {users.map((user) => (
+              {loading ? (
+                <tr><td colSpan={4} className="py-8 text-center text-[#6c757d]">Loading users...</td></tr>
+              ) : users.length === 0 ? (
+                <tr><td colSpan={4} className="py-8 text-center text-[#6c757d]">No users found.</td></tr>
+              ) : users.map((user) => (
                 <tr key={user.id} className="hover:bg-[#f8f9fa] transition-colors">
                   <td className="py-3.5 px-4 md:px-6 text-[#343a40] font-normal whitespace-nowrap">
                     {user.name}
@@ -75,7 +98,7 @@ export default function Users() {
 
         {/* Pagination Controls */}
         <div className="px-4 md:px-6 py-4 border-t border-[#ebedf2] flex items-center justify-between md:justify-end gap-3 text-[12px] text-[#6c757d]">
-          <span>1 - 10 of 31 Entries</span>
+          <span>{total === 0 ? "0 Entries" : `1 - ${users.length} of ${total} Entries`}</span>
 
           <div className="flex items-center gap-2">
             <button

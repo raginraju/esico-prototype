@@ -5,6 +5,7 @@ import { trimTrailingSlash } from "hono/trailing-slash";
 import auth from "./routes/auth";
 import certificatesRouter from "./routes/certificates";
 import idCards from "./routes/idCards";
+import usersRouter from "./routes/users";
 import type { Env } from "./env";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -17,6 +18,7 @@ app.use("*", requestLogger());
 app.route("/api/auth", auth);
 app.route("/api/certificates", certificatesRouter);
 app.route("/api/idcards", idCards);
+app.route("/api/users", usersRouter);
 
 // ---------------- STATIC ASSETS & 404 FALLBACK ----------------
 

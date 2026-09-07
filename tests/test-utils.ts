@@ -34,9 +34,12 @@ export async function setupTestDatabase(db: D1Database) {
     "DROP TABLE IF EXISTS users",
     `CREATE TABLE users (
       id TEXT PRIMARY KEY,
+      name TEXT NOT NULL DEFAULT '',
+      mobile TEXT NOT NULL DEFAULT '',
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'INSPECTOR',
+      status TEXT NOT NULL DEFAULT 'Pending',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )`,
     `CREATE TABLE certificates (

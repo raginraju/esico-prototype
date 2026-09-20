@@ -43,6 +43,17 @@ describe("certificates API route", () => {
     expect(body).toMatchObject({ status: "success", data: [] });
   });
 
+  it("returns dashboard certificate statistics", async () => {
+    const response = await app.fetch(new Request("http://localhost/api/certificates/stats"), context.env);
+    const body = await response.json() as { status: string; data: { total: number; week: number; month: number } };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      status: "success",
+      data: { total: 0, week: 0, month: 0 },
+    });
+  });
+
   it("rejects incomplete certificate data", async () => {
     const response = await app.fetch(
       new Request("http://localhost/api/certificates", {

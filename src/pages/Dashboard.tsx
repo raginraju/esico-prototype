@@ -1,8 +1,41 @@
 // src/pages/Dashboard.tsx
 import { Home } from "lucide-react";
+import { useEffect, useState } from "react";
 import PageHeader from "../components/ui/PageHeader";
+import { authHeaders } from "../lib/utils";
+
+type DashboardStats = {
+  total: number;
+  week: number;
+  month: number;
+  weekStart: string;
+  weekEnd: string;
+  monthLabel: string;
+};
 
 export default function Dashboard() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const headers = authHeaders();
+        const response = Object.keys(headers).length
+          ? await fetch("/api/certificates/stats", { headers })
+          : await fetch("/api/certificates/stats");
+        const json = await response.json();
+
+        if (json.status === "success" && json.data) {
+          setStats(json.data);
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard statistics:", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   return (
     <>
       <PageHeader title="Dashboard" icon={<Home className="w-5 h-5" />} />
@@ -16,7 +49,7 @@ export default function Dashboard() {
               Total Certificates
             </p>
             <h2 className="text-[36px] font-bold tracking-tight mt-1 leading-none">
-              11016
+              {stats?.total ?? "-"}
             </h2>
           </div>
           <div className="pointer-events-none absolute -top-10 -right-10 w-44 h-44 rounded-full bg-white/10" />
@@ -30,11 +63,11 @@ export default function Dashboard() {
               This Week
             </p>
             <h2 className="text-[36px] font-bold tracking-tight mt-1 leading-none">
-              32
+              {stats?.week ?? "-"}
             </h2>
           </div>
           <div className="text-[12px] text-white/90 font-medium">
-            2026-08-31 to 2026-09-06
+            {stats ? `${stats.weekStart} to ${stats.weekEnd}` : "Loading..."}
           </div>
           <div className="pointer-events-none absolute -top-10 -right-10 w-44 h-44 rounded-full bg-white/10" />
           <div className="pointer-events-none absolute -bottom-16 -right-6 w-52 h-52 rounded-full bg-white/10" />
@@ -47,11 +80,11 @@ export default function Dashboard() {
               This Month
             </p>
             <h2 className="text-[36px] font-bold tracking-tight mt-1 leading-none">
-              9
+              {stats?.month ?? "-"}
             </h2>
           </div>
           <div className="text-[12px] text-white/90 font-medium">
-            September
+            {stats?.monthLabel ?? "Loading..."}
           </div>
           <div className="pointer-events-none absolute -top-10 -right-10 w-44 h-44 rounded-full bg-white/10" />
           <div className="pointer-events-none absolute -bottom-16 -right-6 w-52 h-52 rounded-full bg-white/10" />

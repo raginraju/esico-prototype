@@ -24,6 +24,60 @@ certificatesRouter.get("/inspectors", async (c) => {
   });
 });
 
+// GET /api/certificates/stats (Dashboard counts)
+certificatesRouter.get("/stats", async (c) => {
+  const db = drizzle(c.env.DB);
+  const today = new Date();
+  const dayOfWeek = today.getUTCDay();
+  const daysSinceMonday = (dayOfWeek + 6) % 7;
+  const weekStart = new Date(today);
+  weekStart.setUTCDate(today.getUTCDate() - daysSinceMonday);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
+  const formatDate = (date: Date) => date.toISOString().slice(0, 10);
+  const weekStartDate = formatDate(weekStart);
+  const weekEndDate = formatDate(weekEnd);
+  const monthStartDate = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}-01`;
+  const nextMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1));
+  const nextMonthStartDate = formatDate(nextMonth);
+
+  const [totalRecord, weekRecord, monthRecord] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(certificates).get(),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(certificates)
+      .where(
+        and(
+          sql`date(${certificates.created_on}) >= ${weekStartDate}`,
+          sql`date(${certificates.created_on}) < date(${weekEndDate}, '+1 day')`
+        )
+      )
+      .get(),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(certificates)
+      .where(
+        and(
+          sql`date(${certificates.created_on}) >= ${monthStartDate}`,
+          sql`date(${certificates.created_on}) < ${nextMonthStartDate}`
+        )
+      )
+      .get(),
+  ]);
+
+  return c.json({
+    status: "success",
+    data: {
+      total: totalRecord?.count || 0,
+      week: weekRecord?.count || 0,
+      month: monthRecord?.count || 0,
+      weekStart: weekStartDate,
+      weekEnd: weekEndDate,
+      monthLabel: today.toLocaleString("en-US", { month: "long", timeZone: "UTC" }),
+    },
+  });
+});
+
 // GET /api/certificates (Search, Filter, Paginated List & Total Count)
 certificatesRouter.get("/", async (c) => {
   const actor = await getRequestActor(c);

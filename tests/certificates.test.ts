@@ -35,6 +35,14 @@ describe("certificates API route", () => {
     expect(body).toMatchObject({ status: "success", data: [], pagination: { total: 0 } });
   });
 
+  it("returns inspectors for certificate filters", async () => {
+    const response = await app.fetch(new Request("http://localhost/api/certificates/inspectors"), context.env);
+    const body = await response.json() as { status: string; data: unknown[] };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ status: "success", data: [] });
+  });
+
   it("rejects incomplete certificate data", async () => {
     const response = await app.fetch(
       new Request("http://localhost/api/certificates", {
@@ -76,5 +84,26 @@ describe("certificates API route", () => {
 
     expect(response.status).toBe(404);
     expect(await response.json()).toMatchObject({ status: "error", data: null });
+  });
+
+  it("filters certificates by inspector name", async () => {
+    await app.fetch(
+      new Request("http://localhost/api/certificates", {
+        method: "POST",
+        body: JSON.stringify({ ...baseCertificate, inspector_name: "Ada Inspector", inspected_by: "Ada Inspector" }),
+        headers: { "Content-Type": "application/json" },
+      }),
+      context.env
+    );
+
+    const response = await app.fetch(
+      new Request("http://localhost/api/certificates?inspector=Ada%20Inspector"),
+      context.env
+    );
+    const body = await response.json() as { data: { inspector_name: string }[] };
+
+    expect(response.status).toBe(200);
+    expect(body.data).toHaveLength(1);
+    expect(body.data[0].inspector_name).toBe("Ada Inspector");
   });
 });

@@ -27,6 +27,37 @@ describe("Certificates", () => {
     expect(screen.getByText("1 - 1 of 1 Entries")).toBeInTheDocument();
   });
 
+  it("displays the inspector name before the inspected-by value", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({
+        status: "success",
+        data: [{ ...certificate, inspector_name: "Ada Inspector", inspected_by: "inspector-1" }],
+        pagination: { total: 1, totalPages: 1 },
+      }))
+    );
+    render(<Certificates />, { wrapper: MemoryRouter });
+
+    expect(await screen.findByText("Ada Inspector")).toBeInTheDocument();
+    expect(screen.queryByText("inspector-1")).not.toBeInTheDocument();
+  });
+
+  it("loads inspectors for the filter", async () => {
+    vi.spyOn(global, "fetch").mockImplementation(async (input) => {
+      if (input === "/api/certificates/inspectors") {
+        return new Response(JSON.stringify({
+          status: "success",
+          data: [{ id: "inspector-1", name: "Ada Inspector" }],
+        }));
+      }
+
+      return new Response(JSON.stringify({ status: "success", data: [], pagination: { total: 0, totalPages: 1 } }));
+    });
+
+    render(<Certificates />, { wrapper: MemoryRouter });
+
+    expect(await screen.findByRole("option", { name: "Ada Inspector" })).toBeInTheDocument();
+  });
+
   it("sends the report search term and resets filters", async () => {
     const fetchMock = vi.spyOn(global, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ status: "success", data: [], pagination: { total: 0, totalPages: 1 } }))
@@ -41,5 +72,29 @@ describe("Certificates", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/certificates?page=1&limit=10&search=ESICO-001"));
     fireEvent.click(screen.getByTitle("Reset filters"));
     expect(reportInput).toHaveValue("");
+  });
+
+  it("sends the selected inspector as an API filter", async () => {
+    const fetchMock = vi.spyOn(global, "fetch").mockImplementation(async (input) => {
+      if (input === "/api/certificates/inspectors") {
+        return new Response(JSON.stringify({
+          status: "success",
+          data: [{ id: "inspector-1", name: "Ada Inspector" }],
+        }));
+      }
+
+      return new Response(JSON.stringify({ status: "success", data: [], pagination: { total: 0, totalPages: 1 } }));
+    });
+
+    render(<Certificates />, { wrapper: MemoryRouter });
+    const inspectorSelect = (await screen.findAllByRole("combobox"))[0];
+    fireEvent.change(inspectorSelect, { target: { value: "Ada Inspector" } });
+    fireEvent.click(screen.getByTitle("Search"));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/certificates?page=1&limit=10&inspector=Ada+Inspector"
+      )
+    );
   });
 });

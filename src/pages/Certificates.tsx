@@ -16,6 +16,7 @@ export default function Certificates() {
   const [toDate, setToDate] = useState("");
   const [reportNumber, setReportNumber] = useState("");
   const [inspector, setInspector] = useState("");
+  const [inspectors, setInspectors] = useState<{ id: string; name: string }[]>([]);
 
   // Pagination State
   const [page, setPage] = useState(1);
@@ -34,6 +35,9 @@ export default function Certificates() {
       if (reportNumber.trim()) {
         params.append("search", reportNumber.trim());
       }
+      if (inspector.trim()) {
+        params.append("inspector", inspector.trim());
+      }
 
       const url = `/api/certificates?${params.toString()}`;
       const headers = authHeaders();
@@ -51,14 +55,6 @@ export default function Certificates() {
         if (toDate) {
           filtered = filtered.filter((c) => c.selected_date <= toDate);
         }
-        if (inspector) {
-          filtered = filtered.filter(
-            (c) =>
-              c.inspected_by?.toLowerCase() === inspector.toLowerCase() ||
-              c.inspector_name?.toLowerCase() === inspector.toLowerCase()
-          );
-        }
-
         setCertificates(filtered);
         setTotal(json.pagination?.total ?? json.count ?? 0);
         setTotalPages(json.pagination?.totalPages ?? 1);
@@ -73,6 +69,26 @@ export default function Certificates() {
   useEffect(() => {
     fetchCertificates();
   }, [fetchCertificates]);
+
+  useEffect(() => {
+    const fetchInspectors = async () => {
+      try {
+        const headers = authHeaders();
+        const res = Object.keys(headers).length
+          ? await fetch("/api/certificates/inspectors", { headers })
+          : await fetch("/api/certificates/inspectors");
+        const json = await res.json();
+
+        if (json.status === "success" && Array.isArray(json.data)) {
+          setInspectors(json.data);
+        }
+      } catch (err) {
+        console.error("Failed to load inspectors:", err);
+      }
+    };
+
+    fetchInspectors();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,9 +183,11 @@ export default function Certificates() {
               className="h-9 w-48 px-3 border border-[#ced4da] rounded-[2px] text-[12px] text-[#495057] focus:outline-none focus:border-[#b66dff] bg-white"
             >
               <option value="">Select Inspector</option>
-              <option value="Jay Prakash">Jay Prakash</option>
-              <option value="BUVANESH VIJAYARAYAN">BUVANESH VIJAYARAYAN</option>
-              <option value="ANSON">ANSON</option>
+              {inspectors.map((availableInspector) => (
+                <option key={availableInspector.id} value={availableInspector.name}>
+                  {availableInspector.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -243,7 +261,7 @@ export default function Certificates() {
                       {cert.selected_date}
                     </td>
                     <td className="hidden md:table-cell py-3.5 px-6 text-[#6c757d] whitespace-nowrap">
-                      {cert.inspected_by || cert.inspector_name || "N/A"}
+                      {cert.inspector_name || cert.inspected_by || "N/A"}
                     </td>
                     <td className="py-3.5 px-4 md:px-6 whitespace-nowrap">
                       <div className="flex items-center justify-center gap-3 text-[#212529]">

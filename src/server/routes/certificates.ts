@@ -1,19 +1,35 @@
 // src/server/routes/certificates.ts
 import { Hono } from "hono";
 import { drizzle } from "drizzle-orm/d1";
-import { and, desc, eq, like, or, sql } from "drizzle-orm";
-import { certificates, type NewCertificate } from "../../../db/schema";
+import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
+import { certificates, users, type NewCertificate } from "../../../db/schema";
 import type { Env } from "../env";
 import { getRequestActor } from "../lib/requestActor";
 import { auditLogger } from "../lib/logger";
 
 const certificatesRouter = new Hono<{ Bindings: Env }>();
 
+// GET /api/certificates/inspectors (Available inspectors for certificate filters)
+certificatesRouter.get("/inspectors", async (c) => {
+  const db = drizzle(c.env.DB);
+  const inspectors = await db
+    .select({ id: users.id, name: users.name })
+    .from(users)
+    .where(and(eq(users.role, "INSPECTOR"), sql`trim(${users.name}) <> ''`))
+    .orderBy(asc(users.name));
+
+  return c.json({
+    status: "success",
+    data: inspectors,
+  });
+});
+
 // GET /api/certificates (Search, Filter, Paginated List & Total Count)
 certificatesRouter.get("/", async (c) => {
   const actor = await getRequestActor(c);
   const search = c.req.query("search")?.trim();
   const status = c.req.query("status")?.trim();
+  const inspector = c.req.query("inspector")?.trim();
   const page = Math.max(1, Number(c.req.query("page")) || 1);
   const limit = Math.min(100, Math.max(1, Number(c.req.query("limit")) || 10));
   const offset = (page - 1) * limit;
@@ -22,6 +38,14 @@ certificatesRouter.get("/", async (c) => {
   const conditions = [];
 
   if (status) conditions.push(eq(certificates.status, status));
+  if (inspector) {
+    conditions.push(
+      or(
+        eq(certificates.inspector_name, inspector),
+        eq(certificates.inspected_by, inspector)
+      )
+    );
+  }
   if (search) {
     const term = `%${search}%`;
     conditions.push(
@@ -32,7 +56,9 @@ certificatesRouter.get("/", async (c) => {
         like(certificates.location, term),
         like(certificates.sticker_number, term),
         like(certificates.equipment_id, term),
-        like(certificates.unique_id, term)
+        like(certificates.unique_id, term),
+        like(certificates.inspector_name, term),
+        like(certificates.inspected_by, term)
       )
     );
   }
@@ -62,6 +88,7 @@ certificatesRouter.get("/", async (c) => {
     page,
     limit,
     search: Boolean(search),
+    inspector: inspector || "all",
     status: status || "all",
     returned: results.length,
     total,

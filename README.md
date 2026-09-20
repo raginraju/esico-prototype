@@ -16,6 +16,18 @@ For local Wrangler development, create the ignored `.dev.vars` file with:
 ```text
 JWT_SECRET=replace-with-a-long-random-local-secret
 ```
+
+# Local R2 storage
+
+The Worker uses the `ID_CARD_BUCKET` R2 binding for uploaded ID-card files. Wrangler provides a local R2 emulator, so no S3 credentials or S3 client are needed during local development.
+
+Start the Worker with:
+
+```sh
+npx wrangler dev
+```
+
+Local R2 data is persisted by Wrangler. The production deployment uses the same binding name with the R2 bucket configured in `wrangler.toml`.
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.

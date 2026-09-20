@@ -57,11 +57,22 @@ idCardsRouter.post("/", async (c) => {
 
   const cardId = crypto.randomUUID();
 
-  // Generate a mock placeholder file URL if a file is present
   let fileUrl: string | null = null;
   if (file instanceof File && file.size > 0) {
-    const sanitizedName = file.name.replace(/\s+/g, "_");
-    fileUrl = `/uploads/temp_${cardId.slice(0, 8)}_${sanitizedName}`;
+    if (!c.env.ID_CARD_BUCKET) {
+      return c.json(
+        { status: "error", message: "ID card storage is not configured" },
+        503
+      );
+    }
+
+    const objectKey = `id-cards/${cardId}`;
+    await c.env.ID_CARD_BUCKET.put(objectKey, await file.arrayBuffer(), {
+      httpMetadata: {
+        contentType: file.type || "application/octet-stream",
+      },
+    });
+    fileUrl = `/api/idcards/${cardId}/file`;
   }
 
   const newCard: NewIDCard = {
@@ -94,11 +105,47 @@ idCardsRouter.post("/", async (c) => {
   );
 });
 
+// GET /api/idcards/:id/file
+idCardsRouter.get("/:id/file", async (c) => {
+  if (!c.env.ID_CARD_BUCKET) {
+    return c.json({ status: "error", message: "ID card storage is not configured" }, 503);
+  }
+
+  const id = c.req.param("id");
+  const db = drizzle(c.env.DB);
+  const card = await db
+    .select({ fileUrl: idCards.file_url })
+    .from(idCards)
+    .where(eq(idCards.id, id))
+    .get();
+
+  if (!card?.fileUrl) {
+    return c.json({ status: "error", message: "ID card file not found" }, 404);
+  }
+
+  const object = await c.env.ID_CARD_BUCKET.get(`id-cards/${id}`);
+
+  if (!object) {
+    return c.json({ status: "error", message: "ID card file not found" }, 404);
+  }
+
+  const headers = new Headers();
+  if (object.httpMetadata?.contentType) {
+    headers.set("content-type", object.httpMetadata.contentType);
+  }
+  headers.set("etag", object.httpEtag);
+  return new Response(object.body as unknown as BodyInit, { headers });
+});
+
 // DELETE /api/idcards/:id
 idCardsRouter.delete("/:id", async (c) => {
   const actor = await getRequestActor(c);
   const id = c.req.param("id");
   const db = drizzle(c.env.DB);
+
+  if (c.env.ID_CARD_BUCKET) {
+    await c.env.ID_CARD_BUCKET.delete(`id-cards/${id}`);
+  }
 
   await db.delete(idCards).where(eq(idCards.id, id));
 

@@ -1,5 +1,5 @@
 // src/pages/NewCertificate.tsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -16,11 +16,6 @@ const CERTIFICATE_TITLES = [
 export default function NewCertificate() {
   const navigate = useNavigate();
   const routeLocation = useLocation();
-  const navigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => () => {
-    if (navigationTimerRef.current) clearTimeout(navigationTimerRef.current);
-  }, []);
 
   // Form Field States
   const [titleType, setTitleType] = useState<"existing" | "new">("existing");
@@ -161,14 +156,14 @@ export default function NewCertificate() {
 
       const data = await res.json();
 
-      if (!res.ok || data.status === "error") {
+      if (!res.ok || data.status === "error" || !data.data?.id) {
         throw new Error(data.message || "Failed to create certificate");
       }
 
       setSuccessMsg("Certificate has been created successfully!");
-      navigationTimerRef.current = setTimeout(() => {
-        navigate("/certificates");
-      }, 1000);
+      navigate(`/viewPDF/${encodeURIComponent(data.data.id)}`, {
+        state: { uploadPdf: true },
+      });
     } catch (err: any) {
       setErrorMsg(err.message || "An unexpected error occurred.");
       window.scrollTo({ top: 0, behavior: "smooth" });

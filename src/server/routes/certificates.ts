@@ -8,6 +8,7 @@ import { getRequestActor } from "../lib/requestActor";
 import { auditLogger } from "../lib/logger";
 
 const certificatesRouter = new Hono<{ Bindings: Env }>();
+const certificatePdfKey = (id: string) => `certificates/${id}.pdf`;
 
 // GET /api/certificates/inspectors (Available inspectors for certificate filters)
 certificatesRouter.get("/inspectors", async (c) => {
@@ -160,6 +161,56 @@ certificatesRouter.get("/", async (c) => {
     count: results.length,
     data: results,
   });
+});
+
+// GET /api/certificates/:id/pdf
+certificatesRouter.get("/:id/pdf", async (c) => {
+  if (!c.env.CERTIFICATE_BUCKET) {
+    return c.json({ status: "error", message: "Certificate storage is not configured" }, 503);
+  }
+
+  const object = await c.env.CERTIFICATE_BUCKET.get(certificatePdfKey(c.req.param("id")));
+  if (!object) {
+    return c.json({ status: "error", message: "Certificate PDF not found" }, 404);
+  }
+
+  const headers = new Headers({
+    "content-type": "application/pdf",
+    "content-disposition": `attachment; filename="${c.req.param("id")}.pdf"`,
+  });
+  headers.set("etag", object.httpEtag);
+  return new Response(object.body as unknown as BodyInit, { headers });
+});
+
+// POST /api/certificates/:id/pdf
+certificatesRouter.post("/:id/pdf", async (c) => {
+  if (!c.env.CERTIFICATE_BUCKET) {
+    return c.json({ status: "error", message: "Certificate storage is not configured" }, 503);
+  }
+
+  const id = c.req.param("id");
+  const db = drizzle(c.env.DB);
+  const certificate = await db
+    .select({ id: certificates.id })
+    .from(certificates)
+    .where(eq(certificates.id, id))
+    .get();
+
+  if (!certificate) {
+    return c.json({ status: "error", message: "Certificate not found" }, 404);
+  }
+
+  const body = await c.req.parseBody();
+  const file = body.file;
+  if (!(file instanceof File) || file.size === 0 || file.type !== "application/pdf") {
+    return c.json({ status: "error", message: "A non-empty PDF file is required" }, 400);
+  }
+
+  await c.env.CERTIFICATE_BUCKET.put(certificatePdfKey(id), await file.arrayBuffer(), {
+    httpMetadata: { contentType: "application/pdf" },
+  });
+
+  return c.json({ status: "success", message: "Certificate PDF stored successfully" });
 });
 
 // GET /api/certificates/:id (Detail / Search / QR Scan)
@@ -337,6 +388,7 @@ certificatesRouter.put("/:id", async (c) => {
     .set(updatePayload)
     .where(eq(certificates.id, id));
 
+
   auditLogger.info("certificates.update", "Certificate updated", {
     actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
     item: { type: "certificate", reference: id },
@@ -356,6 +408,9 @@ certificatesRouter.delete("/:id", async (c) => {
   const db = drizzle(c.env.DB);
 
   await db.delete(certificates).where(eq(certificates.id, id));
+  if (c.env.CERTIFICATE_BUCKET) {
+    await c.env.CERTIFICATE_BUCKET.delete(certificatePdfKey(id));
+  }
 
   auditLogger.info("certificates.delete", "Certificate deleted", {
     actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },

@@ -18,6 +18,10 @@ migrations_dir = "./migrations"
 binding = "ID_CARD_BUCKET"
 bucket_name = "id-cards-storage"
 
+[[r2_buckets]]
+binding = "CERTIFICATE_BUCKET"
+bucket_name = "certificates-storage"
+
 [observability.logs]
 enabled = true
 head_sampling_rate = 1

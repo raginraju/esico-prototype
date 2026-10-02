@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import NewCertificate from "../src/pages/NewCertificate";
 
@@ -73,11 +73,18 @@ describe("NewCertificate", () => {
     expect(screen.getByText("Name and Address of employer is required.")).toBeInTheDocument();
   });
 
-  it("submits the required certificate data", async () => {
+  it("submits and navigates directly to the PDF view", async () => {
     const fetchMock = vi.spyOn(global, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ status: "success" }), { status: 200 })
+      new Response(JSON.stringify({ status: "success", data: { id: "cert-123" } }), { status: 200 })
     );
-    render(<NewCertificate />, { wrapper: MemoryRouter });
+    render(
+      <MemoryRouter initialEntries={["/certificates/new"]}>
+        <Routes>
+          <Route path="/certificates/new" element={<NewCertificate />} />
+          <Route path="/viewPDF/:id" element={<p>Certificate PDF view</p>} />
+        </Routes>
+      </MemoryRouter>
+    );
 
     fireEvent.change(screen.getByPlaceholderText("ESICO-LFT-RXX-XXX"), { target: { value: "esico-123" } });
     fireEvent.change(screen.getAllByPlaceholderText("Type something...")[1], { target: { value: "Acme" } });
@@ -86,5 +93,6 @@ describe("NewCertificate", () => {
 
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/certificates", expect.objectContaining({ method: "POST" })));
     expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toMatchObject({ report_number: "ESICO-123", equipment_description: "Crane" });
+    expect(await screen.findByText("Certificate PDF view")).toBeInTheDocument();
   });
 });

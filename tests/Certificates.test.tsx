@@ -15,7 +15,10 @@ const certificate = {
 };
 
 describe("Certificates", () => {
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
 
   it("loads and displays certificate records", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue(
@@ -25,6 +28,30 @@ describe("Certificates", () => {
 
     expect(await screen.findByText("ESICO-001")).toBeInTheDocument();
     expect(screen.getByText("1 - 1 of 1 Entries")).toBeInTheDocument();
+  });
+
+  it("downloads the stored PDF for a certificate", async () => {
+    const createObjectURL = vi.fn(() => "blob:certificate-pdf");
+    vi.stubGlobal("URL", Object.assign(class extends URL {}, { createObjectURL }));
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      if (String(input).endsWith("/cert-1/pdf")) return new Response("%PDF");
+      return new Response(JSON.stringify({
+        status: "success",
+        data: [certificate],
+        pagination: { total: 1, totalPages: 1 },
+      }));
+    });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    render(<Certificates />, { wrapper: MemoryRouter });
+    fireEvent.click(await screen.findByRole("button", { name: "Download certificate" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/certificates/cert-1/pdf",
+      expect.objectContaining({ headers: expect.any(Object) })
+    ));
+    expect(createObjectURL).toHaveBeenCalled();
+    expect(click).toHaveBeenCalled();
   });
 
   it("displays the inspector name before the inspected-by value", async () => {

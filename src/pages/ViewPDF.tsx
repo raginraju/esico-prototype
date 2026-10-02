@@ -1,17 +1,103 @@
 // src/pages/ViewPDF.tsx
 import { useEffect, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { Download } from "lucide-react";
+import html2pdf from "html2pdf.js";
 import type { CertificateRecord } from "../types/certificate";
 import { authHeaders } from "../lib/utils";
+
+async function generateCertificatePdf(sheet: HTMLElement, reportNumber: string) {
+  await document.fonts.ready;
+  const images = Array.from(sheet.querySelectorAll("img"));
+  await Promise.all(
+    images.map(async (image) => {
+      if (!image.complete) {
+        await new Promise<void>((resolve) => {
+          image.addEventListener("load", () => resolve(), { once: true });
+          image.addEventListener("error", () => resolve(), { once: true });
+        });
+      }
+    })
+  );
+
+  const elements = [sheet, ...Array.from(sheet.querySelectorAll<HTMLElement>("*"))];
+  const originalStyles = elements.map((element) => element.getAttribute("style"));
+  const colorCanvas = document.createElement("canvas");
+  colorCanvas.width = 1;
+  colorCanvas.height = 1;
+  const colorContext = colorCanvas.getContext("2d", { willReadFrequently: true });
+  if (!colorContext) throw new Error("Could not prepare PDF color conversion");
+  const normalizedColorCache = new Map<string, string>();
+  const normalizeColors = (value: string) => value.replace(/oklch\([^)]*\)/gi, (color) => {
+    const normalized = normalizedColorCache.get(color);
+    if (normalized) return normalized;
+
+    colorContext.clearRect(0, 0, 1, 1);
+    colorContext.fillStyle = color;
+    colorContext.fillRect(0, 0, 1, 1);
+    const [red, green, blue, alpha] = colorContext.getImageData(0, 0, 1, 1).data;
+    const rgb = `rgba(${red}, ${green}, ${blue}, ${(alpha / 255).toFixed(3)})`;
+    normalizedColorCache.set(color, rgb);
+    return rgb;
+  });
+
+  try {
+    elements.forEach((element, index) => {
+      const computed = window.getComputedStyle(element);
+      const declarations: string[] = [];
+      for (let propertyIndex = 0; propertyIndex < computed.length; propertyIndex += 1) {
+        const property = computed.item(propertyIndex);
+        const value = computed.getPropertyValue(property);
+        if (value) declarations.push(`${property}:${normalizeColors(value)}`);
+      }
+      element.setAttribute("style", [originalStyles[index], ...declarations].filter(Boolean).join(";"));
+    });
+
+    return await html2pdf()
+      .set({
+        margin: 0,
+        filename: `${reportNumber}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          onclone: (clonedDocument: Document) => {
+            clonedDocument.querySelectorAll("style").forEach((style) => style.remove());
+            clonedDocument.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]').forEach((link) => {
+              if (new URL(link.href).origin === window.location.origin) link.remove();
+            });
+          },
+        },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      })
+      .from(sheet)
+      .outputPdf("blob");
+  } finally {
+    elements.forEach((element, index) => {
+      const originalStyle = originalStyles[index];
+      if (originalStyle === null) {
+        element.removeAttribute("style");
+      } else {
+        element.setAttribute("style", originalStyle);
+      }
+    });
+  }
+}
 
 export default function ViewPDF() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const pdfUploadStartedForRef = useRef<string | null>(null);
+  const isCreateFlow = Boolean(location.state?.uploadPdf);
 
   const [cert, setCert] = useState<CertificateRecord | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState<boolean>(true);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -43,21 +129,69 @@ export default function ViewPDF() {
         }
         setCert(json.data);
       })
-      .catch((err: any) => setError(err.message || "Failed to load certificate"))
-      .finally(() => setLoading(false));
+      .catch((err: any) => {
+        if (err.name !== "AbortError") setError(err.message || "Failed to load certificate");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
 
     return () => controller.abort();
   }, [id]);
 
-  const handlePrint = () => {
-    if (typeof window.print === "function") {
-      window.print();
-    } else {
-      alert("Printing is not supported on this browser.");
-    }
-  };
+  useEffect(() => {
+    if (!cert) return;
+    if (isCreateFlow && pdfUploadStartedForRef.current === cert.id) return;
 
-  if (loading) {
+    const controller = new AbortController();
+    let createdObjectUrl: string | null = null;
+    setPdfLoading(true);
+    setPdfError(null);
+
+    const loadPdf = async () => {
+      try {
+        if (isCreateFlow) {
+          pdfUploadStartedForRef.current = cert.id;
+          const sheet = document.getElementById("certificate-print-sheet");
+          if (!sheet) throw new Error("Certificate sheet is not ready for PDF generation");
+
+          const generatedPdf = await generateCertificatePdf(sheet, cert.report_number);
+          const formData = new FormData();
+          formData.append("file", generatedPdf, `${cert.report_number}.pdf`);
+          const uploadResponse = await fetch(`/api/certificates/${encodeURIComponent(cert.id)}/pdf`, {
+            method: "POST",
+            headers: authHeaders(),
+            body: formData,
+          });
+          if (!uploadResponse.ok) throw new Error("Failed to save certificate PDF");
+        }
+
+        const headers = authHeaders();
+        const response = await fetch(`/api/certificates/${encodeURIComponent(cert.id)}/pdf`, {
+          headers,
+          signal: isCreateFlow ? undefined : controller.signal,
+        });
+        if (!response.ok) throw new Error("Certificate PDF not found");
+
+        createdObjectUrl = URL.createObjectURL(await response.blob());
+        setPdfUrl(createdObjectUrl);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setPdfError(error instanceof Error ? error.message : "Failed to load certificate PDF");
+        }
+      } finally {
+        if (!controller.signal.aborted) setPdfLoading(false);
+      }
+    };
+
+    void loadPdf();
+    return () => {
+      if (!isCreateFlow) controller.abort();
+      if (createdObjectUrl) URL.revokeObjectURL(createdObjectUrl);
+    };
+  }, [cert, isCreateFlow]);
+
+  if (loading || (cert && pdfLoading && !isCreateFlow)) {
     return (
       <div className="min-h-screen bg-[#ede9f3] flex items-center justify-center p-4 font-sans">
         <div className="flex flex-col items-center gap-3">
@@ -88,12 +222,47 @@ export default function ViewPDF() {
     );
   }
 
+  if (pdfError) {
+    return (
+      <div className="min-h-screen bg-[#ede9f3] flex items-center justify-center p-4 font-sans">
+        <div className="w-full max-w-[460px] bg-white rounded shadow-sm p-8 text-center space-y-4">
+          <h2 className="text-[16px] font-bold text-neutral-900">Certificate PDF Unavailable</h2>
+          <p className="text-[12.5px] text-neutral-600">{pdfError}</p>
+          <button
+            onClick={() => navigate("/viewcertificates")}
+            className="px-6 py-2 bg-[#00623a] text-white text-xs font-semibold rounded shadow-sm hover:bg-[#004d2e]"
+          >
+            Back to Search
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(
     window.location.origin + `/viewcertificates?id=${cert.report_number}`
   )}`;
+  const isPreparingPdf = isCreateFlow && pdfLoading && !pdfUrl;
 
   return (
-    <div className="view-pdf-container min-h-screen bg-[#ece8f2] py-6 px-2 sm:px-4 flex flex-col items-center">
+    <>
+    {isPreparingPdf && (
+      <div className="min-h-screen bg-[#ece8f2] flex flex-col items-center justify-center gap-3 p-4 font-sans">
+        <div className="w-8 h-8 border-4 border-[#00623a] border-t-transparent rounded-full animate-spin" />
+        <p className="text-[13px] font-medium text-neutral-600">Preparing certificate PDF...</p>
+        <button
+          onClick={() => navigate("/viewcertificates")}
+          className="mt-2 px-5 py-2 bg-white text-neutral-700 font-semibold rounded border border-neutral-300 text-xs"
+        >
+          Back to Search
+        </button>
+      </div>
+    )}
+    <div
+      aria-hidden="true"
+      className="view-pdf-container min-h-screen bg-[#ece8f2] py-6 px-2 sm:px-4 flex flex-col items-center"
+      style={isPreparingPdf ? { position: "fixed", left: 0, top: 0, opacity: 0, pointerEvents: "none", zIndex: -1 } : { display: "none" }}
+    >
       <link
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap"
@@ -528,57 +697,34 @@ export default function ViewPDF() {
         >
           Back to Search
         </button>
-        <button
-          onClick={handlePrint}
-          className="px-6 py-1.5 bg-[#efefef] hover:bg-[#e4e4e4] active:bg-[#dcdcdc] text-neutral-900 text-[13px] font-normal border-none rounded-[1px] cursor-pointer shadow-none transition-colors"
-        >
-          Print
-        </button>
       </div>
 
-      {/* Print Styles for Single Page A4 Portrait */}
-      <style>{`
-        @media print {
-          @page {
-            size: A4 portrait;
-            margin: 6mm 8mm;
-          }
-          html, body {
-            background-color: #ffffff !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: visible !important;
-            width: 100% !important;
-          }
-          .view-pdf-container {
-            padding: 0 !important;
-            background: transparent !important;
-            min-height: auto !important;
-            display: block !important;
-          }
-          .print-wrapper {
-            overflow: visible !important;
-            display: block !important;
-            width: 100% !important;
-          }
-          #certificate-print-sheet {
-            width: 100% !important;
-            max-width: 100% !important;
-            min-width: 0 !important;
-            margin: 0 auto !important;
-            padding: 0 !important;
-            border: none !important;
-            box-shadow: none !important;
-            page-break-inside: avoid !important;
-            page-break-after: avoid !important;
-            zoom: 95%;
-          }
-          * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-        }
-      `}</style>
     </div>
+    {pdfUrl && (
+      <div className="min-h-screen bg-[#ece8f2] py-4 px-2 sm:px-4 flex flex-col items-center">
+        <iframe
+          title="Certificate PDF"
+          src={pdfUrl}
+          className="w-full max-w-[900px] h-[calc(100vh-88px)] min-h-[520px] border-0 bg-white"
+        />
+        <div className="mt-3 flex gap-3">
+          <button
+            onClick={() => navigate("/viewcertificates")}
+            className="px-5 py-2 bg-white text-neutral-700 font-semibold rounded border border-neutral-300 text-xs"
+          >
+            Back to Search
+          </button>
+          <a
+            href={pdfUrl}
+            download={`${cert.report_number || cert.id}.pdf`}
+            className="inline-flex items-center gap-2 px-5 py-2 bg-[#00623a] text-white font-semibold rounded text-xs"
+          >
+            <Download className="w-4 h-4" />
+            Download PDF
+          </a>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

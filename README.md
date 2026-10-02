@@ -21,6 +21,8 @@ JWT_SECRET=replace-with-a-long-random-local-secret
 
 The Worker uses the `ID_CARD_BUCKET` R2 binding for uploaded ID-card files. Wrangler provides a local R2 emulator, so no S3 credentials or S3 client are needed during local development.
 
+Certificate fields remain in D1, which is the source of truth for listing, searching, editing, and viewing certificate data. The `CERTIFICATE_BUCKET` binding is reserved for generated PDF files under `certificates/<certificate-id>.pdf`.
+
 Start the Worker with:
 
 ```sh

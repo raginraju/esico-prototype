@@ -5,5 +5,6 @@ export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
   ID_CARD_BUCKET?: R2Bucket;
+  CERTIFICATE_BUCKET?: R2Bucket;
   JWT_SECRET: string;
 }

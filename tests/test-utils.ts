@@ -90,9 +90,12 @@ export async function setupTestDatabase(db: D1Database) {
     `CREATE TABLE id_cards (
       id TEXT PRIMARY KEY NOT NULL,
       name TEXT NOT NULL,
+      company_name TEXT NOT NULL DEFAULT '',
       file_number TEXT NOT NULL,
       civil_id_number TEXT NOT NULL,
       designation TEXT NOT NULL,
+      type_model TEXT NOT NULL DEFAULT '',
+      capacity_swl TEXT NOT NULL DEFAULT '',
       expiry_date TEXT NOT NULL,
       file_url TEXT,
       created_at TEXT NOT NULL

@@ -79,9 +79,12 @@ export const certificates = sqliteTable("certificates", {
 export const idCards = sqliteTable("id_cards", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
+  company_name: text("company_name").notNull().default(""),
   file_number: text("file_number").notNull(),
   civil_id_number: text("civil_id_number").notNull(),
   designation: text("designation").notNull(),
+  type_model: text("type_model").notNull().default(""),
+  capacity_swl: text("capacity_swl").notNull().default(""),
   expiry_date: text("expiry_date").notNull(),
   file_url: text("file_url"),
   created_at: text("created_at").notNull(),

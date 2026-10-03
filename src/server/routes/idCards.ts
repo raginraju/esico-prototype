@@ -35,9 +35,12 @@ idCardsRouter.post("/", async (c) => {
   const body = await c.req.parseBody();
 
   const name = (body["name"] as string)?.trim();
+  const company_name = (body["company_name"] as string)?.trim() || "";
   const file_number = (body["file_number"] as string)?.trim();
   const civil_id_number = (body["civil_id_number"] as string)?.trim();
   const designation = (body["designation"] as string)?.trim() || "N/A";
+  const type_model = (body["type_model"] as string)?.trim() || "";
+  const capacity_swl = (body["capacity_swl"] as string)?.trim() || "";
   const expiry_date = (body["expiry_date"] as string)?.trim() || "";
   const file = body["file"];
 
@@ -78,9 +81,12 @@ idCardsRouter.post("/", async (c) => {
   const newCard: NewIDCard = {
     id: cardId,
     name,
+    company_name,
     file_number,
     civil_id_number,
     designation,
+    type_model,
+    capacity_swl,
     expiry_date: expiry_date || new Date().toISOString().split("T")[0],
     file_url: fileUrl,
     created_at: new Date().toISOString(),

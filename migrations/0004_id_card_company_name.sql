@@ -1,0 +1,1 @@
+ALTER TABLE `id_cards` ADD `company_name` text DEFAULT '' NOT NULL;

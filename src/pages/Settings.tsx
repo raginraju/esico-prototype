@@ -5,10 +5,15 @@ import PageHeader from "../components/ui/PageHeader";
 
 export default function Settings() {
   // Form States
-  const [fullName, setFullName] = useState("EMAAR SUPPORT INSPECTION COMPANY");
-  const [email] = useState("info@esico.com.sa");
-  const [mobile] = useState("0507259023");
-  const [gender, setGender] = useState("Male");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [gender, setGender] = useState("");
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [saveSuccess, setSaveSuccess] = useState("");
+  const [saving, setSaving] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -16,51 +21,113 @@ export default function Settings() {
 
   // Signature Pad State
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
+  const isDrawingRef = useRef(false);
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const [inspectorSignature, setInspectorSignature] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/auth/session", { credentials: "same-origin" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok || !data.authenticated || !data.user) {
+          throw new Error(data.message || "Could not load the signed-in user's profile.");
+        }
+        if (cancelled) return;
+        setFullName(data.user.name || "");
+        setEmail(data.user.email || "");
+        setMobile(data.user.mobile || "");
+        setGender(data.user.gender || "");
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setProfileError(error instanceof Error ? error.message : "Could not load profile.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setProfileLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.strokeStyle = "#111827";
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+
+    const resizeCanvas = () => {
+      const { width, height } = canvas.getBoundingClientRect();
+      if (!width || !height) return;
+      const pixelRatio = window.devicePixelRatio || 1;
+      canvas.width = Math.round(width * pixelRatio);
+      canvas.height = Math.round(height * pixelRatio);
+      ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      ctx.strokeStyle = "#111827";
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+    };
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    return () => window.removeEventListener("resize", resizeCanvas);
   }, []);
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+  const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const rect = canvas.getBoundingClientRect();
-    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-
+    const point = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    canvas.setPointerCapture(e.pointerId);
     ctx.beginPath();
-    ctx.moveTo(clientX - rect.left, clientY - rect.top);
-    setIsDrawing(true);
+    ctx.moveTo(point.x, point.y);
+    isDrawingRef.current = true;
+    lastPointRef.current = point;
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return;
+  const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawingRef.current) return;
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const lastPoint = lastPointRef.current;
+    if (!canvas || !lastPoint) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const rect = canvas.getBoundingClientRect();
-    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-
-    ctx.lineTo(clientX - rect.left, clientY - rect.top);
+    const point = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    const midpoint = {
+      x: (lastPoint.x + point.x) / 2,
+      y: (lastPoint.y + point.y) / 2,
+    };
+    ctx.quadraticCurveTo(lastPoint.x, lastPoint.y, midpoint.x, midpoint.y);
     ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(midpoint.x, midpoint.y);
+    lastPointRef.current = point;
   };
 
-  const stopDrawing = () => {
-    setIsDrawing(false);
+  const stopDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    const lastPoint = lastPointRef.current;
+    if (isDrawingRef.current && canvas && lastPoint) {
+      const ctx = canvas.getContext("2d");
+      const rect = canvas.getBoundingClientRect();
+      if (ctx) {
+        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+        ctx.stroke();
+      }
+      if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+    }
+    isDrawingRef.current = false;
+    lastPointRef.current = null;
   };
 
   const handleClearSignature = () => {
@@ -68,11 +135,64 @@ export default function Settings() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const rect = canvas.getBoundingClientRect();
+    ctx.clearRect(0, 0, rect.width, rect.height);
   };
 
   const handleSaveSignature = () => {
-    alert("Signature captured!");
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setInspectorSignature(canvas.toDataURL("image/png"));
+  };
+
+  const handleUpdateProfile = async () => {
+    setSaveError("");
+    setSaveSuccess("");
+
+    if (!fullName.trim()) {
+      setSaveError("Full name is required.");
+      return;
+    }
+    if (newPassword || confirmPassword) {
+      if (newPassword !== confirmPassword) {
+        setSaveError("New password and confirmation do not match.");
+        return;
+      }
+      if (newPassword.length < 8) {
+        setSaveError("New password must be at least 8 characters.");
+        return;
+      }
+    }
+
+    setSaving(true);
+    try {
+      const payload: { name: string; gender: string; password?: string } = {
+        name: fullName.trim(),
+        gender,
+      };
+      if (newPassword) payload.password = newPassword;
+
+      const response = await fetch("/api/auth/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (!response.ok || data.status !== "success") {
+        throw new Error(data.message || "Failed to update profile.");
+      }
+
+      setFullName(data.user.name || "");
+      setGender(data.user.gender || "");
+      setNewPassword("");
+      setConfirmPassword("");
+      setSaveSuccess("Profile updated successfully.");
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Failed to update profile.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -85,6 +205,11 @@ export default function Settings() {
       {/* Card 1: Personal Details */}
       <div className="bg-white rounded-[4px] shadow-[0_0_10px_rgba(0,0,0,0.03)] border border-[#ebedf2] p-6">
         <h2 className="text-[13px] font-medium text-[#495057] mb-4">Personal Details</h2>
+
+        {profileError && <p role="alert" className="mb-4 text-[12px] text-red-600">{profileError}</p>}
+        {profileLoading && <p role="status" className="mb-4 text-[12px] text-[#6c757d]">Loading profile...</p>}
+        {saveError && <p role="alert" className="mb-4 text-[12px] text-red-600">{saveError}</p>}
+        {saveSuccess && <p role="status" className="mb-4 text-[12px] text-green-700">{saveSuccess}</p>}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           {/* Full Name */}
@@ -124,12 +249,14 @@ export default function Settings() {
 
           {/* Gender */}
           <div>
-            <label className="block text-[12px] text-[#6c757d] mb-1">Gender</label>
+            <label htmlFor="settings-gender" className="block text-[12px] text-[#6c757d] mb-1">Gender</label>
             <select
+              id="settings-gender"
               value={gender}
               onChange={(e) => setGender(e.target.value)}
               className="w-full h-9 px-3 border border-[#ced4da] rounded-[2px] text-[12.5px] text-[#343a40] focus:outline-none focus:border-[#b66dff] bg-white"
             >
+              <option value="">Not set</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
             </select>
@@ -187,10 +314,11 @@ export default function Settings() {
         <div className="mt-5">
           <button
             type="button"
-            onClick={() => alert("Personal details updated")}
+            onClick={handleUpdateProfile}
+            disabled={profileLoading || saving}
             className="px-6 py-2 bg-gradient-to-r from-[#da8cff] to-[#9a55ff] text-white text-[13px] font-medium rounded-[4px] shadow-xs hover:opacity-95 transition-opacity cursor-pointer"
           >
-            Update
+            {saving ? "Updating..." : "Update"}
           </button>
         </div>
       </div>
@@ -202,18 +330,15 @@ export default function Settings() {
         {/* Canvas Sign Area */}
         <div>
           <p className="text-[12px] text-[#6c757d] mb-1.5">Sign Here</p>
-          <div className="relative border border-[#ced4da] rounded-[2px] bg-white w-full h-[220px]">
+          <div className="relative border border-[#ced4da] rounded-[2px] bg-white w-full max-w-[506px] min-h-[300px] aspect-[506/400]">
             <canvas
               ref={canvasRef}
-              width={800}
-              height={220}
-              onMouseDown={startDrawing}
-              onMouseMove={draw}
-              onMouseUp={stopDrawing}
-              onMouseLeave={stopDrawing}
-              onTouchStart={startDrawing}
-              onTouchMove={draw}
-              onTouchEnd={stopDrawing}
+              width={506}
+              height={400}
+              onPointerDown={startDrawing}
+              onPointerMove={draw}
+              onPointerUp={stopDrawing}
+              onPointerCancel={stopDrawing}
               className="w-full h-full cursor-crosshair touch-none"
             />
 
@@ -243,9 +368,9 @@ export default function Settings() {
             <p className="text-[12px] text-[#6c757d] mb-1.5">Inspector Signature</p>
             <div className="border border-[#ced4da] rounded-[2px] bg-white h-[200px] flex items-center justify-center p-4">
               <img
-                src="/assets/signature.png"
+                src={inspectorSignature || "/assets/signature.png"}
                 alt="Inspector Signature"
-                className="max-h-full max-w-full object-contain"
+                className="h-full w-full object-contain"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = "none";
                 }}
@@ -259,7 +384,7 @@ export default function Settings() {
               <img
                 src="/assets/signature.png"
                 alt="QC Signature"
-                className="max-h-full max-w-full object-contain mix-blend-multiply"
+                className="h-full w-full object-contain mix-blend-multiply"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = "none";
                 }}

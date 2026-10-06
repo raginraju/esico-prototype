@@ -41,6 +41,42 @@ describe("Users", () => {
 
     expect(screen.getByRole("dialog", { name: "Add New User" })).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Gender")).toHaveValue("");
+    vi.unstubAllGlobals();
+  });
+
+  it("sends the selected gender when creating a user", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (input === "/api/users" && init?.method === "POST") {
+        return new Response(JSON.stringify({ status: "success" }));
+      }
+      return new Response(JSON.stringify({ status: "success", data: [], pagination: { total: 0 } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<Users />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add New" }));
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Aisha Khan" } });
+    fireEvent.change(screen.getByLabelText("Mobile"), { target: { value: "0501234567" } });
+    fireEvent.change(screen.getByLabelText("Gender"), { target: { value: "Female" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "aisha@example.com" } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add User" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/users",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          name: "Aisha Khan",
+          mobile: "0501234567",
+          gender: "Female",
+          email: "aisha@example.com",
+          password: "password123",
+          status: "Pending",
+        }),
+      })
+    ));
     vi.unstubAllGlobals();
   });
 });

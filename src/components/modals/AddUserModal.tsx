@@ -12,6 +12,7 @@ interface AddUserModalProps {
 export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) {
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
+  const [gender, setGender] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState("Pending");
@@ -22,6 +23,7 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
     if (isOpen) {
       setName("");
       setMobile("");
+      setGender("");
       setEmail("");
       setPassword("");
       setStatus("Pending");
@@ -45,7 +47,7 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
       const response = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ name, mobile, email, password, status }),
+        body: JSON.stringify({ name, mobile, gender, email, password, status }),
       });
       const body = await response.json();
 
@@ -72,6 +74,12 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
         <form onSubmit={handleSubmit} className="space-y-3">
           <Input id="user-name" label="Name" value={name} onChange={(event) => setName(event.target.value)} required />
           <Input id="user-mobile" label="Mobile" value={mobile} onChange={(event) => setMobile(event.target.value)} />
+          <label htmlFor="user-gender" className="block text-[13px] font-bold text-[#22242a]">Gender</label>
+          <select id="user-gender" value={gender} onChange={(event) => setGender(event.target.value)} className="w-full rounded-[2px] border border-[#e8eaf0] bg-white px-3.5 py-3 text-[14px] text-[#22242a] focus:outline-none focus:border-neutral-400 focus:ring-1 focus:ring-neutral-400">
+            <option value="">Not set</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
           <Input id="user-email" label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
           <Input id="user-password" label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
           <label htmlFor="user-status" className="block text-[13px] font-bold text-[#22242a]">Status</label>

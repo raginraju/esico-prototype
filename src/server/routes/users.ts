@@ -46,15 +46,20 @@ usersRouter.post("/", async (c) => {
   const password = typeof body.password === "string" ? body.password : "";
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const mobile = typeof body.mobile === "string" ? body.mobile.trim() : "";
+  const gender = typeof body.gender === "string" ? body.gender : "";
 
   if (!name || !email || !password) {
     return c.json({ status: "error", message: "name, email, and password are required" }, 400);
+  }
+  if (!["", "Male", "Female"].includes(gender)) {
+    return c.json({ status: "error", message: "gender must be Male or Female" }, 400);
   }
 
   const newUser: NewUser = {
     id: typeof body.id === "string" && body.id ? body.id : crypto.randomUUID(),
     name,
     mobile,
+    gender,
     email,
     passwordHash: password,
     role: typeof body.role === "string" && body.role ? body.role : "INSPECTOR",
@@ -75,7 +80,7 @@ usersRouter.post("/", async (c) => {
     item: { type: "user", reference: newUser.id },
   });
   return c.json({ status: "success", message: "User created successfully", data: {
-    id: newUser.id, name: newUser.name, mobile: newUser.mobile, email: newUser.email, status: newUser.status,
+    id: newUser.id, name: newUser.name, mobile: newUser.mobile, gender: newUser.gender, email: newUser.email, status: newUser.status,
   } }, 201);
 });
 

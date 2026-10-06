@@ -30,9 +30,9 @@ describe("users API route", () => {
     const createResponse = await app.fetch(new Request("http://localhost/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Test User", mobile: "0500000000", email: "test@example.com", password: "secret" }),
+      body: JSON.stringify({ name: "Test User", mobile: "0500000000", gender: "Female", email: "test@example.com", password: "secret" }),
     }), context.env);
-    const created = await createResponse.json() as { data: { id: string } };
+    const created = await createResponse.json() as { data: { id: string; gender: string } };
     const id = created.data.id;
 
     const updateResponse = await app.fetch(new Request(`http://localhost/api/users/${id}`, {
@@ -43,6 +43,7 @@ describe("users API route", () => {
     const deleteResponse = await app.fetch(new Request(`http://localhost/api/users/${id}`, { method: "DELETE" }), context.env);
 
     expect(createResponse.status).toBe(201);
+    expect(created.data.gender).toBe("Female");
     expect(updateResponse.status).toBe(200);
     expect(deleteResponse.status).toBe(200);
   });

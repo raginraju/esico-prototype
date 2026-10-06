@@ -45,6 +45,9 @@ describe("auth API route", () => {
   });
 
   it("sets a secure HttpOnly session cookie for valid credentials", async () => {
+    await context.env.DB.prepare(
+      "UPDATE users SET name = ?, mobile = ? WHERE id = ?"
+    ).bind("Aisha Khan", "0501234567", "u_admin").run();
     const response = await app.fetch(
       new Request("http://localhost/api/auth/login", {
         method: "POST",
@@ -69,6 +72,45 @@ describe("auth API route", () => {
       context.env
     );
     expect(sessionResponse.status).toBe(200);
-    expect(await sessionResponse.json()).toMatchObject({ authenticated: true });
+    expect(await sessionResponse.json()).toMatchObject({
+      authenticated: true,
+      user: {
+        id: "u_admin",
+        name: "Aisha Khan",
+        email: "admin@esico.com.sa",
+        mobile: "0501234567",
+        role: "ADMIN",
+      },
+    });
+  });
+
+  it("updates only the authenticated user's profile", async () => {
+    const loginResponse = await app.fetch(
+      new Request("http://localhost/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email: "admin@esico.com.sa", password: "demo123" }),
+        headers: { "Content-Type": "application/json" },
+      }),
+      context.env
+    );
+    const cookie = loginResponse.headers.get("set-cookie")!.split(";")[0];
+    const response = await app.fetch(
+      new Request("http://localhost/api/auth/profile", {
+        method: "PUT",
+        body: JSON.stringify({ name: "Updated Admin", gender: "Female", password: "new-password-123", id: "someone-else" }),
+        headers: { Cookie: cookie, "Content-Type": "application/json" },
+      }),
+      context.env
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      status: "success",
+      user: { id: "u_admin", name: "Updated Admin", gender: "Female" },
+    });
+    const stored = await context.env.DB.prepare(
+      "SELECT password_hash FROM users WHERE id = ?"
+    ).bind("u_admin").first<{ password_hash: string }>();
+    expect(stored?.password_hash).toBe("new-password-123");
   });
 });

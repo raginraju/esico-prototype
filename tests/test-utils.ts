@@ -36,6 +36,7 @@ export async function setupTestDatabase(db: D1Database) {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL DEFAULT '',
       mobile TEXT NOT NULL DEFAULT '',
+      gender TEXT NOT NULL DEFAULT '',
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'INSPECTOR',

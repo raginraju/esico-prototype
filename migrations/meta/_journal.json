@@ -36,6 +36,13 @@
       "when": 1790987892989,
       "tag": "0004_id_card_company_name",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791300343641,
+      "tag": "0005_user_profile_gender",
+      "breakpoints": true
     }
   ]
 }

@@ -23,6 +23,19 @@ describe("GenerateIdCardModal", () => {
   });
 
   it("saves the card fields and enables printing", async () => {
+    const printDocument = { open: vi.fn(), write: vi.fn(), close: vi.fn() };
+    const printWindow = {
+      document: printDocument,
+      addEventListener: vi.fn(),
+      focus: vi.fn(),
+      print: vi.fn(),
+      close: vi.fn(),
+      setTimeout: vi.fn((callback: () => void) => {
+        callback();
+        return 0;
+      }),
+    };
+    vi.spyOn(window, "open").mockReturnValue(printWindow as unknown as Window);
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "application/json" }),
@@ -64,5 +77,13 @@ describe("GenerateIdCardModal", () => {
     expect(body.get("capacity_swl")).toBe("1100 t");
     expect(body.get("expiry_date")).toBe("2027-01-01");
     expect(screen.getByRole("button", { name: /Print Card/i })).toBeEnabled();
+
+    await userEvent.click(screen.getByRole("button", { name: /Print Card/i }));
+
+    const printedHtml = printDocument.write.mock.calls[0][0] as string;
+    expect(printedHtml.match(/class="id-card-side/g)).toHaveLength(2);
+    expect(printedHtml).toContain("@page { size: 85.6mm 53.98mm; margin: 0; }");
+    expect(printWindow.focus).toHaveBeenCalled();
+    expect(printWindow.print).toHaveBeenCalled();
   });
 });

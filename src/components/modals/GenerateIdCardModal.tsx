@@ -120,7 +120,43 @@ export default function GenerateIdCardModal({
   };
 
   const handlePrint = () => {
-    window.print();
+    const card = document.querySelector<HTMLElement>(".id-card-print");
+    const printWindow = window.open("", "_blank", "width=600,height=400");
+
+    if (!card || !printWindow) {
+      setError("Allow pop-ups to print the ID card.");
+      return;
+    }
+
+    const styles = Array.from(document.querySelectorAll("style, link[rel='stylesheet']"))
+      .map((element) => element.outerHTML)
+      .join("");
+
+    printWindow.addEventListener("afterprint", () => printWindow.close(), { once: true });
+
+    printWindow.document.open();
+    printWindow.document.write(`<!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>ID Card</title>
+          ${styles}
+          <style>
+            @page { size: 85.6mm 53.98mm; margin: 0; }
+            html, body { width: 85.6mm !important; margin: 0 !important; padding: 0 !important; }
+            .id-card-print { display: block !important; position: static !important; width: 85.6mm !important; max-width: none !important; height: auto !important; margin: 0 !important; }
+            .id-card-side { width: 85.6mm !important; height: 53.98mm !important; min-height: 53.98mm !important; max-height: 53.98mm !important; break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; }
+            .id-card-side:first-child { break-after: page; page-break-after: always; }
+            .id-card-side:last-child { break-after: auto; page-break-after: auto; }
+          </style>
+        </head>
+        <body>${card.outerHTML}</body>
+      </html>`);
+    printWindow.document.close();
+      printWindow.setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+      }, 250);
   };
 
   return (
@@ -134,6 +170,7 @@ export default function GenerateIdCardModal({
             position: absolute;
             top: 0;
             left: 0;
+            display: block !important;
             width: 85.6mm !important;
             max-width: none !important;
             height: auto !important;
@@ -150,14 +187,13 @@ export default function GenerateIdCardModal({
             height: 53.98mm !important;
             min-height: 53.98mm !important;
             max-height: 53.98mm !important;
-            page-break-after: always;
-            break-after: page;
+            page-break-inside: avoid;
+            break-inside: avoid;
             box-shadow: none !important;
           }
-          .id-card-print { gap: 0 !important; }
-          .id-card-side:last-child {
-            page-break-after: auto;
-            break-after: auto;
+          .id-card-side:first-child {
+            page-break-after: always;
+            break-after: page;
           }
         }
       `}</style>

@@ -31,4 +31,33 @@ describe("IDCards", () => {
 
     expect(screen.getByText("Add New ID Card")).toBeInTheDocument();
   });
+
+  it("opens the edit form with the selected card values", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({
+        status: "success",
+        data: [{
+          id: "card-1",
+          name: "Aisha Khan",
+          company_name: "MSSI Company",
+          file_number: "F-1",
+          civil_id_number: "C-1",
+          designation: "Inspector",
+          type_model: "LTM 1160",
+          capacity_swl: "1100 t",
+          expiry_date: "2027-01-01",
+          file_url: null,
+          created_at: "2026-01-01",
+        }],
+      }))
+    );
+    render(<IDCards />, { wrapper: MemoryRouter });
+
+    await screen.findByText("Aisha Khan");
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    expect(screen.getByText("Edit ID Card")).toBeInTheDocument();
+    expect(screen.getByLabelText("Company Name")).toHaveValue("MSSI Company");
+    expect(screen.getByLabelText("Type / Model")).toHaveValue("LTM 1160");
+  });
 });

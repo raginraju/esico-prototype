@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Printer, Sparkles, X } from "lucide-react";
 import { authHeaders } from "../../lib/utils";
+import type { IDCardRecord } from "../../types/idCard";
 
 interface GenerateIdCardModalProps {
   isOpen: boolean;
+  card?: IDCardRecord | null;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -37,6 +39,7 @@ function formatCardDate(value: string) {
 
 export default function GenerateIdCardModal({
   isOpen,
+  card = null,
   onClose,
   onSuccess,
 }: GenerateIdCardModalProps) {
@@ -49,17 +52,26 @@ export default function GenerateIdCardModal({
 
   useEffect(() => {
     if (isOpen) {
-      setForm(emptyForm);
+      setForm(card ? {
+        name: card.name,
+        companyName: card.company_name,
+        fileNumber: card.file_number,
+        civilIdNumber: card.civil_id_number,
+        designation: card.designation,
+        typeModel: card.type_model,
+        capacitySwl: card.capacity_swl,
+        expiryDate: card.expiry_date,
+      } : emptyForm);
       setPhoto(null);
+      setPhotoUrl(card?.file_url || null);
       setError("");
       setSaved(false);
       setLoading(false);
     }
-  }, [isOpen]);
+  }, [card, isOpen]);
 
   useEffect(() => {
     if (!photo) {
-      setPhotoUrl(null);
       return;
     }
 
@@ -99,11 +111,14 @@ export default function GenerateIdCardModal({
       body.append("expiry_date", form.expiryDate);
       if (photo) body.append("file", photo);
 
-      const response = await fetch("/api/idcards", {
-        method: "POST",
+      const response = await fetch(
+        card ? `/api/idcards/${encodeURIComponent(card.id)}` : "/api/idcards",
+        {
+        method: card ? "PUT" : "POST",
         headers: authHeaders(),
         body,
-      });
+        }
+      );
       const data = await response.json();
 
       if (!response.ok || data?.status === "error") {
@@ -131,6 +146,7 @@ export default function GenerateIdCardModal({
     const styles = Array.from(document.querySelectorAll("style, link[rel='stylesheet']"))
       .map((element) => element.outerHTML)
       .join("");
+    const printTitle = form.name.trim().replace(/[\\/:*?"<>|]/g, "").trim() || "ID Card";
 
     printWindow.addEventListener("afterprint", () => printWindow.close(), { once: true });
 
@@ -139,7 +155,7 @@ export default function GenerateIdCardModal({
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>ID Card</title>
+          <title></title>
           ${styles}
           <style>
             @page { size: 85.6mm 53.98mm; margin: 0; }
@@ -153,11 +169,33 @@ export default function GenerateIdCardModal({
         <body>${card.outerHTML}</body>
       </html>`);
     printWindow.document.close();
-      printWindow.setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-      }, 250);
+    printWindow.document.title = printTitle;
+
+    let printTimeout: number | undefined;
+    let printStarted = false;
+    const printCard = () => {
+      if (printStarted || printWindow.closed) return;
+      printStarted = true;
+      if (printTimeout !== undefined) printWindow.clearTimeout(printTimeout);
+      printWindow.focus();
+      printWindow.print();
+    };
+    const imageLoads = Array.from(printWindow.document.images).map((image) => {
+      if (image.complete) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        image.addEventListener("load", () => resolve(), { once: true });
+        image.addEventListener("error", () => resolve(), { once: true });
+      });
+    });
+
+    printTimeout = printWindow.setTimeout(printCard, 5000);
+    void Promise.all([
+      Promise.all(imageLoads),
+      printWindow.document.fonts?.ready ?? Promise.resolve(),
+    ]).then(printCard);
   };
+
+  const verificationUrl = `${window.location.origin}/viewcertificates`;
 
   return (
     <div className="id-card-modal fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4">
@@ -209,7 +247,7 @@ export default function GenerateIdCardModal({
           </button>
 
           <div>
-            <h2 className="mb-1 text-lg font-semibold text-[#343a40]">Generate ID Card</h2>
+            <h2 className="mb-1 text-lg font-semibold text-[#343a40]">{card ? "Edit ID Card" : "Generate ID Card"}</h2>
             <p className="mb-5 text-sm text-gray-500">Enter the employee details to create a printable card.</p>
 
             {error && (
@@ -308,7 +346,7 @@ export default function GenerateIdCardModal({
                   className="flex items-center gap-2 rounded-md bg-gradient-to-r from-[#da8cff] to-[#b66dff] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                 >
                   <Sparkles className="h-4 w-4" />
-                  {loading ? "Generating..." : saved ? "Generated" : "Generate & Save"}
+                  {loading ? (card ? "Saving..." : "Generating...") : saved ? (card ? "Saved" : "Generated") : (card ? "Save Changes" : "Generate & Save")}
                 </button>
                 <button
                   type="button"
@@ -340,7 +378,7 @@ export default function GenerateIdCardModal({
                 <div className="absolute bottom-[6%] left-[3%] flex h-[31%] w-[19%] items-center justify-center border border-neutral-200 bg-white p-[1%]">
                   {form.fileNumber ? (
                     <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(form.fileNumber)}`}
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(verificationUrl)}`}
                       alt="ID number QR code"
                       className="h-full w-full object-contain"
                     />

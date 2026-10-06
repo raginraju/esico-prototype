@@ -111,6 +111,71 @@ idCardsRouter.post("/", async (c) => {
   );
 });
 
+// PUT /api/idcards/:id
+idCardsRouter.put("/:id", async (c) => {
+  const actor = await getRequestActor(c);
+  const id = c.req.param("id");
+  const body = await c.req.parseBody();
+  const db = drizzle(c.env.DB);
+  const existing = await db.select().from(idCards).where(eq(idCards.id, id)).get();
+
+  if (!existing) {
+    return c.json({ status: "error", message: "ID card not found" }, 404);
+  }
+
+  const value = (key: string, fallback: string) =>
+    typeof body[key] === "string" ? (body[key] as string).trim() : fallback;
+  const name = value("name", existing.name);
+  const file_number = value("file_number", existing.file_number);
+  const civil_id_number = value("civil_id_number", existing.civil_id_number);
+
+  if (!name || !file_number || !civil_id_number) {
+    return c.json({
+      status: "error",
+      message: "name, file_number, and civil_id_number are required",
+    }, 400);
+  }
+
+  let fileUrl = existing.file_url;
+  const file = body["file"];
+  if (file instanceof File && file.size > 0) {
+    if (!c.env.ID_CARD_BUCKET) {
+      return c.json({ status: "error", message: "ID card storage is not configured" }, 503);
+    }
+
+    await c.env.ID_CARD_BUCKET.put(`id-cards/${id}`, await file.arrayBuffer(), {
+      httpMetadata: { contentType: file.type || "application/octet-stream" },
+    });
+    fileUrl = `/api/idcards/${id}/file`;
+  }
+
+  const updates = {
+    name,
+    company_name: value("company_name", existing.company_name),
+    file_number,
+    civil_id_number,
+    designation: value("designation", existing.designation),
+    type_model: value("type_model", existing.type_model),
+    capacity_swl: value("capacity_swl", existing.capacity_swl),
+    expiry_date: value("expiry_date", existing.expiry_date),
+    file_url: fileUrl,
+  };
+
+  await db.update(idCards).set(updates).where(eq(idCards.id, id));
+
+  auditLogger.info("idcards.update", "ID card updated", {
+    actor: { id: actor.id, authenticated: actor.id !== "anonymous", role: actor.role },
+    item: { type: "id_card", reference: id },
+    hasFile: fileUrl !== null,
+  });
+
+  return c.json({
+    status: "success",
+    message: "ID card updated successfully",
+    data: { ...existing, ...updates },
+  });
+});
+
 // GET /api/idcards/:id/file
 idCardsRouter.get("/:id/file", async (c) => {
   if (!c.env.ID_CARD_BUCKET) {

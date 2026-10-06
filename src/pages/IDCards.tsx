@@ -5,21 +5,13 @@ import PageHeader from "../components/ui/PageHeader";
 import AddIdCardModal from "../components/modals/AddIdCardModal";
 import GenerateIdCardModal from "../components/modals/GenerateIdCardModal";
 import { authHeaders } from "../lib/utils";
-
-interface IDCardItem {
-  id: string;
-  name: string;
-  file_number: string;
-  civil_id_number: string;
-  designation: string;
-  expiry_date: string;
-  file_url?: string | null;
-}
+import type { IDCardRecord } from "../types/idCard";
 
 export default function IDCards() {
-  const [cards, setCards] = useState<IDCardItem[]>([]);
+  const [cards, setCards] = useState<IDCardRecord[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+  const [editingCard, setEditingCard] = useState<IDCardRecord | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchCards = async () => {
@@ -68,7 +60,10 @@ export default function IDCards() {
         icon={<CreditCard className="w-5 h-5" />}
         actionButtons={[{
           label: "Add New",
-          onClick: () => setIsGenerateModalOpen(true),
+          onClick: () => {
+            setEditingCard(null);
+            setIsGenerateModalOpen(true);
+          },
         }, {
           label: "Add New (Old)",
           onClick: () => setIsModalOpen(true),
@@ -123,7 +118,10 @@ export default function IDCards() {
                     <td className="py-3.5 px-4 md:px-6 whitespace-nowrap">
                       <div className="flex items-center justify-center gap-3 text-[#212529]">
                         <button
-                          onClick={() => alert(`Edit ${card.name}`)}
+                          onClick={() => {
+                            setEditingCard(card);
+                            setIsGenerateModalOpen(true);
+                          }}
                           className="p-1 hover:text-[#b66dff] transition-colors cursor-pointer"
                           title="Edit"
                           aria-label="Edit"
@@ -209,7 +207,11 @@ export default function IDCards() {
       />
       <GenerateIdCardModal
         isOpen={isGenerateModalOpen}
-        onClose={() => setIsGenerateModalOpen(false)}
+        card={editingCard}
+        onClose={() => {
+          setIsGenerateModalOpen(false);
+          setEditingCard(null);
+        }}
         onSuccess={fetchCards}
       />
     </>
